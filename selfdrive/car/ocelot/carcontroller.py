@@ -1,8 +1,8 @@
 from cereal import car
 from common.numpy_fast import clip
-from selfdrive.car import apply_toyota_steer_torque_limits, make_can_msg
+from selfdrive.car import apply_toyota_steer_torque_limits
 from selfdrive.car.ocelot.ocelotcan import create_steer_command, create_gas_command, create_brake_cmd
-from selfdrive.car.ocelot.values import CAR, SteerLimitParams
+from selfdrive.car.ocelot.values import SteerLimitParams
 from opendbc.can.packer import CANPacker
 
 VisualAlert = car.CarControl.HUDControl.VisualAlert
@@ -103,7 +103,7 @@ class CarController():
       # This prevents unexpected pedal range rescaling
       can_sends.append(create_gas_command(self.packer, apply_gas, frame//2))
     
-    can_sends.append(create_brake_cmd(self.packer, enabled, actuators.brake, frame//2))
+    can_sends.append(create_brake_cmd(self.packer, enabled, actuators.brake, frame))
 
     # ui mesg is at 100Hz but we send asap if:
     # - there is something to display
@@ -111,14 +111,9 @@ class CarController():
     fcw_alert = hud_alert == VisualAlert.fcw
     steer_alert = hud_alert == VisualAlert.steerRequired
 
-    send_ui = False
     if ((fcw_alert or steer_alert) and not self.alert_active) or \
        (not (fcw_alert or steer_alert) and self.alert_active):
-      send_ui = True
       self.alert_active = not self.alert_active
-    elif pcm_cancel_cmd:
-      # forcing the pcm to disengage causes a bad fault sound so play a good sound instead
-      send_ui = True
 
     # #*** static msgs ***
 

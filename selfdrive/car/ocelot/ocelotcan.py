@@ -6,7 +6,7 @@ def create_steer_command(packer, steer, mode, raw_cnt):
     "REQUESTED_STEER_TORQUE": steer,
     "COUNTER": raw_cnt,
   }
-  return packer.make_can_msg("OCELOT_STEERING_COMMAND", 0, values)
+  return packer.make_can_msg("OCELOT_STEERING_COMMAND", 2, values)
 
 def create_gas_command(packer, gas_amount, idx):
   # Common gas pedal msg generator
@@ -18,16 +18,16 @@ def create_gas_command(packer, gas_amount, idx):
   }
 
   if enable:
-    values["GAS_COMMAND"] = gas_amount * 255.
-    values["GAS_COMMAND2"] = gas_amount * 255.
+    values["GAS_COMMAND"] = gas_amount * 2500
+    values["GAS_COMMAND2"] = gas_amount * 1250
 
-  return packer.make_can_msg("PEDAL_GAS_COMMAND", 0, values)
+  return packer.make_can_msg("PEDAL_GAS_COMMAND", 2, values)
 
 def create_brake_cmd(packer, enabled, brake, raw_cnt):
   values = {
-    "BRAKE_POSITION_COMMAND" : 0,
-    "BRAKE_RELATIVE_COMMAND": brake * 252,
-    "BRAKE_MODE": enabled,
+    "BRAKE_POSITION_COMMAND" : brake * 47,
+    "BRAKE_RELATIVE_COMMAND": 0,
+    "BRAKE_MODE": 2 if enabled else 0,
     "COUNTER" : raw_cnt,
   }
-  return packer.make_can_msg("OCELOT_BRAKE_COMMAND", 0, values)
+  return packer.make_can_msg("OCELOT_BRAKE_COMMAND", 2, values)
