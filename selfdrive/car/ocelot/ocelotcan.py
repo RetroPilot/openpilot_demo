@@ -6,7 +6,7 @@ def create_steer_command(packer, steer, mode, raw_cnt):
     "REQUESTED_STEER_TORQUE": steer,
     "COUNTER": raw_cnt,
   }
-  return packer.make_can_msg("ACTUATOR_STEERING_COMMAND", 0, values)
+  return packer.make_can_msg("OCELOT_STEERING_COMMAND", 0, values)
 
 def create_gas_command(packer, gas_amount, idx):
   # Common gas pedal msg generator
