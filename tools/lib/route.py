@@ -174,7 +174,7 @@ class Segment:
 class RouteName:
   def __init__(self, name_str: str):
     self._name_str = name_str
-    delim = next(c for c in self._name_str if c in ("|", "/"))
+    delim = next(c for c in self._name_str if c in ("|", "/", "_"))
     self._dongle_id, self._time_str = self._name_str.split(delim)
 
     assert len(self._dongle_id) == 16, self._name_str

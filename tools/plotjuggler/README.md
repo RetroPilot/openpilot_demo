@@ -21,10 +21,12 @@ positional arguments:
   route_or_segment_name
                         The route or segment name to plot (cabana share URL accepted) (default: None)
   segment_count         The number of segments to plot (default: None)
+  data_dir           The folder that contain logs from your comma device
 
 optional arguments:
   -h, --help         show this help message and exit
   --demo             Use the demo route instead of providing one (default: False)
+  --local            Find log locally
   --qlog             Use qlogs (default: False)
   --can              Parse CAN data (default: False)
   --stream           Start PlotJuggler in streaming mode (default: False)
@@ -39,6 +41,10 @@ Examples using route name:
 Examples using segment name:
 
 `./juggle.py "4cf7a6ad03080c90|2021-09-29--13-46-36--1"`
+
+Local Log Example:
+
+`./juggle.py --local "2021-09-29--13-46-36" "/your_log_folder/"`
 
 ## Streaming
 

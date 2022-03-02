@@ -6,6 +6,7 @@ TIME_FMT = "%Y-%m-%d--%H-%M-%S"
 class RE:
   DONGLE_ID =  r'(?P<dongle_id>[a-z0-9]{16})'
   TIMESTAMP = r'(?P<timestamp>[0-9]{4}-[0-9]{2}-[0-9]{2}--[0-9]{2}-[0-9]{2}-[0-9]{2})'
+  LOCAL_SEGMENT = r'[0-9]{4}-[0-9]{2}-[0-9]{2}--[0-9]{2}-[0-9]{2}-[0-9]{2}--[0-9]+'
   ROUTE_NAME = r'{}[|_/]{}'.format(DONGLE_ID, TIMESTAMP)
   SEGMENT_NAME = r'{}(?:--|/)(?P<segment_num>[0-9]+)'.format(ROUTE_NAME)
   BOOTLOG_NAME = ROUTE_NAME

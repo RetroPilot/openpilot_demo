@@ -75,7 +75,7 @@ def start_juggler(fn=None, dbc=None, layout=None):
   subprocess.call(cmd, shell=True, env=env, cwd=juggle_dir)
 
 
-def juggle_route(route_or_segment_name, segment_count, qlog, can, layout):
+def juggle_route(route_or_segment_name, base_dir, segment_count, qlog, can, layout):
   segment_start = 0
   if 'cabana' in route_or_segment_name:
     query = parse_qs(urlparse(route_or_segment_name).query)
@@ -83,6 +83,10 @@ def juggle_route(route_or_segment_name, segment_count, qlog, can, layout):
     logs = api.get(f'v1/route/{query["route"][0]}/log_urls?sig={query["sig"][0]}&exp={query["exp"][0]}')
   elif route_or_segment_name.startswith("http://") or route_or_segment_name.startswith("https://") or os.path.isfile(route_or_segment_name):
     logs = [route_or_segment_name]
+  elif base_dir:
+    segment_start=1
+    r = Route(route_or_segment_name, data_dir=base_dir)
+    logs = r.qlog_paths() if qlog else r.log_paths()
   else:
     route_or_segment_name = SegmentName(route_or_segment_name, allow_route_name=True)
     segment_start = max(route_or_segment_name.segment_num, 0)
@@ -133,6 +137,7 @@ if __name__ == "__main__":
                                    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
   parser.add_argument("--demo", action="store_true", help="Use the demo route instead of providing one")
+  parser.add_argument("--local", action="store_true", help="Find log locally")
   parser.add_argument("--qlog", action="store_true", help="Use qlogs")
   parser.add_argument("--can", action="store_true", help="Parse CAN data")
   parser.add_argument("--stream", action="store_true", help="Start PlotJuggler in streaming mode")
@@ -140,7 +145,7 @@ if __name__ == "__main__":
   parser.add_argument("--install", action="store_true", help="Install or update PlotJuggler + plugins")
   parser.add_argument("route_or_segment_name", nargs='?', help="The route or segment name to plot (cabana share URL accepted)")
   parser.add_argument("segment_count", type=int, nargs='?', help="The number of segments to plot")
-
+  parser.add_argument("log_base_dir", nargs='?', help="Local dir of log")
   if len(sys.argv) == 1:
     parser.print_help()
     sys.exit()
@@ -158,4 +163,5 @@ if __name__ == "__main__":
     start_juggler(layout=args.layout)
   else:
     route_or_segment_name = DEMO_ROUTE if args.demo else args.route_or_segment_name.strip()
-    juggle_route(route_or_segment_name, args.segment_count, args.qlog, args.can, args.layout)
+    base_dir = args.log_base_dir.strip() if args.local else False
+    juggle_route(route_or_segment_name, base_dir, args.segment_count, args.qlog, args.can, args.layout)
