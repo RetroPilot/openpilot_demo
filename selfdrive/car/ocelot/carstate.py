@@ -4,7 +4,7 @@ from opendbc.can.can_define import CANDefine
 from selfdrive.car.interfaces import CarStateBase
 from opendbc.can.parser import CANParser
 from selfdrive.config import Conversions as CV
-from selfdrive.car.ocelot.values import CAR, DBC, STEER_THRESHOLD
+from selfdrive.car.ocelot.values import DBC, BUTTON_STATES
 
 
 class CarState(CarStateBase):
@@ -16,34 +16,37 @@ class CarState(CarStateBase):
     self.setSpeed = 0
     self.enabled = False
     self.oldEnabled = False
+    self.oldSpeedUp = False
+    self.oldSpeedDn = False
+    self.setSpeed = 10
+    self.buttonStates = BUTTON_STATES.copy()
 
   def update(self, cp, cp_body):
     ret = car.CarState.new_message()
 
     #Car specific information
-    if self.CP.carFingerprint == CAR.SMART_ROADSTER_COUPE:
-        ret.doorOpen = False #any([cp_body.vl["BODYCONTROL"]['RIGHT_DOOR'], cp_body.vl["BODYCONTROL"]['LEFT_DOOR']]) != 0
-        ret.seatbeltUnlatched = False
-        ret.leftBlinker = False #cp_body.vl["BODYCONTROL"]['LEFT_SIGNAL']
-        ret.rightBlinker = False #cp_body.vl["BODYCONTROL"]['RIGHT_SIGNAL']
-        ret.espDisabled = False #cp_body.vl["ABS"]['ESP_STATUS']
-        ret.wheelSpeeds.fl = 0 #cp_body.vl["SMARTROADSTERWHEELSPEEDS"]['WHEELSPEED_FL'] * CV.MPH_TO_MS
-        ret.wheelSpeeds.fr = 0 #cp_body.vl["SMARTROADSTERWHEELSPEEDS"]['WHEELSPEED_FR'] * CV.MPH_TO_MS
-        ret.wheelSpeeds.rl = 0 #cp_body.vl["SMARTROADSTERWHEELSPEEDS"]['WHEELSPEED_RL'] * CV.MPH_TO_MS
-        ret.wheelSpeeds.rr = 0 #cp_body.vl["SMARTROADSTERWHEELSPEEDS"]['WHEELSPEED_RR'] * CV.MPH_TO_MS
-        ret.brakeLights = False #cp_body.vl["ABS"]['BRAKEPEDAL']
-        can_gear = 0 #int(cp_body.vl["GEARBOX"]['GEARPOSITION'])
-        ret.gearShifter = self.parse_gear_shifter(self.shifter_values.get(can_gear, None))
+    ret.doorOpen =any([cp_body.vl["DOORS"]['FL_DOOR'], cp_body.vl["DOORS"]['FR_DOOR'],
+                        cp_body.vl["DOORS"]['RL_DOOR'], cp_body.vl["DOORS"]['RR_DOOR']]) != 0
+    ret.seatbeltUnlatched = cp_body.vl["SEATBELTS"]["DRIVER_SEATBELT"]
+    ret.leftBlinker = (cp_body.vl["SIGNAL_STALK"]['TURN_SIGNALS'] == 1)
+    ret.rightBlinker = (cp_body.vl["SIGNAL_STALK"]['TURN_SIGNALS'] == 3)
+    ret.espDisabled = False #cp_body.vl["ABS"]['ESP_STATUS']
+    ret.wheelSpeeds.fl = cp_body.vl["WHEEL_SPEEDS"]['WHEEL_FL'] * CV.MPH_TO_MS
+    ret.wheelSpeeds.fr = cp_body.vl["WHEEL_SPEEDS"]['WHEEL_FR'] * CV.MPH_TO_MS
+    ret.wheelSpeeds.rl = cp_body.vl["WHEEL_SPEEDS"]['WHEEL_RL'] * CV.MPH_TO_MS
+    ret.wheelSpeeds.rr = cp_body.vl["WHEEL_SPEEDS"]['WHEEL_RR'] * CV.MPH_TO_MS
+    ret.brakeLights = cp_body.vl["GAS_BRAKE"]['BRAKE_PRESSED']
+    can_gear = int(cp_body.vl["GEAR_PACKET"]['GEAR'])
+    ret.gearShifter = self.parse_gear_shifter(self.shifter_values.get(can_gear, None))
 
     #Ibooster data
-    ret.brakePressed = False #cp.vl["BRAKE_STATUS"]['IBOOSTER_BRAKE_APPLIED']
+    ret.brakePressed = cp.vl["OCELOT_BRAKE_STATUS"]['DRIVER_BRAKE_APPLIED']
 
-    # if CP.enableGasInterceptor:
-    #   ret.gas = (cp_body.vl["GAS_SENSOR"]['PED_GAS'] + cp_body.vl["GAS_SENSOR"]['PED_GAS2']) / 2.
-    #   ret.gasPressed = ret.gas > 15
+    ret.gas = ((cp_body.vl["PEDAL_GAS_SENSOR"]['PED_GAS'] / 2) + cp_body.vl["PEDAL_GAS_SENSOR"]['PED_GAS2']) / 2.
+    ret.gasPressed = ret.gas > 260
 
-    ret.gas = 0
-    ret.gasPressed = False
+    # ret.gas = 0
+    # ret.gasPressed = False
 
     #calculate speed from wheel speeds
     ret.vEgoRaw = mean([ret.wheelSpeeds.fl, ret.wheelSpeeds.fr, ret.wheelSpeeds.rl, ret.wheelSpeeds.rr])
@@ -51,37 +54,61 @@ class CarState(CarStateBase):
     ret.standstill = ret.vEgoRaw < 0.001
 
     #Toyota SAS
-    ret.steeringAngleDeg = 0 #cp.vl["TOYOTA_STEERING_ANGLE_SENSOR1"]['TOYOTA_STEER_ANGLE'] + cp.vl["TOYOTA_STEERING_ANGLE_SENSOR1"]['TOYOTA_STEER_FRACTION']
-    ret.steeringRateDeg = 0 #cp.vl["TOYOTA_STEERING_ANGLE_SENSOR1"]['TOYOTA_STEER_RATE']
+    ret.steeringAngleDeg = cp.vl["STEER_ANGLE_SENSOR"]['STEER_ANGLE']
+    ret.steeringRateDeg = cp.vl["VSC"]['STEER_RATE']
 
 
     #Steering information from smart standin ECU
-    ret.steeringTorque = 0 #cp.vl["STEERING_STATUS"]['STEER_TORQUE_DRIVER']
-    ret.steeringTorqueEps = 0 #cp.vl["STEERING_STATUS"]['STEER_TORQUE_EPS']
+    raw_torque = 0
+    if (cp.vl["STEER_TORQUE"]['DIRECTION'] == 1):
+      raw_torque = cp.vl["STEER_TORQUE"]['DRIVER_TORQUE'] * -1
+    else:
+      raw_torque = cp.vl["STEER_TORQUE"]['DRIVER_TORQUE']
+    ret.steeringTorque = raw_torque
+
+    # TODO: handle steering actuator
+    ret.steeringTorqueEps = raw_torque * 10 #cp.vl["STEERING_STATUS"]['STEER_TORQUE_EPS']
     ret.steeringPressed = False #abs(ret.steeringTorque) > STEER_THRESHOLD
     ret.steerWarning = False #cp.vl["STEERING_STATUS"]['STEERING_OK'] != 0
 
-    ret.cruiseState.available = True
+    main_on = bool(cp.vl["CRUISE_BUTTONS"]['MAIN_ON'])
+
+    ret.cruiseState.available = main_on
     ret.cruiseState.standstill = False
     ret.cruiseState.nonAdaptive = False
 
-    #Logic for OP to manage whether it's enabled or not as controls board only sends button inputs
-    self.oldEnabled = self.enabled
+    self.buttonStates["accelCruise"] = bool(cp.vl["CRUISE_BUTTONS"]['SET_PLUS'])
+    self.buttonStates["decelCruise"] = bool(cp.vl["CRUISE_BUTTONS"]['SET_MINUS'])
+    self.buttonStates["setCruise"] = bool(cp.vl["CRUISE_BUTTONS"]['CANCEL'])
 
-    self.setSpeed = ret.cruiseState.speed
-    #if enabled from off (rising edge) set the speed to the current speed rounded to 5mph
-    if self.enabled and not(self.oldEnabled):
-        ret.cruiseState.speed = (self.myround((ret.vEgo * CV.MS_TO_MPH), 5)) * CV.MPH_TO_MS
+    if not main_on:
+      self.enabled = False
+
+    if bool(cp.vl["CRUISE_BUTTONS"]['MAIN_ON']):
+      if bool(self.buttonStates["setCruise"]) and not self.oldEnabled:
+        self.enabled = not self.enabled
+        if self.enabled:
+            self.setSpeed = (int(round((ret.vEgo * CV.MS_TO_MPH)/5)) * 5)
+            if ret.standstill:
+              self.setSpeed = 10
 
     #increase or decrease speed in 5mph increments
-    # if cp.vl["HIM_CTRLS"]['SPEEDUP_BTN']:
-    #     ret.cruiseState.speed = self.setSpeed + 5*CV.MPH_TO_MS
+    if cp.vl["CRUISE_BUTTONS"]['SET_PLUS']:
+      self.setSpeed = self.setSpeed + 5
 
-    # if cp.vl["HIM_CTRLS"]['SPEEDDN_BTN']:
-    #     ret.cruiseState.speed = self.setSpeed - 5*CV.MPH_TO_MS
+    if cp.vl["CRUISE_BUTTONS"]['SET_MINUS']:
+      self.setSpeed = self.setSpeed - 5
 
+    ret.cruiseState.speed = self.setSpeed * CV.MPH_TO_MS
     ret.cruiseState.enabled = self.enabled
 
+    ret.stockAeb = False
+    ret.leftBlindspot = False
+    ret.rightBlindspot = False
+
+    self.oldEnabled = bool(self.buttonStates["setCruise"])
+    self.oldSpeedDn = bool(self.buttonStates["decelCruise"])
+    self.oldSpeedUp = bool(self.buttonStates["accelCruise"])
 
     return ret
 
@@ -92,12 +119,15 @@ class CarState(CarStateBase):
 
     signals = [
       # sig_name, sig_address, default
-      ("BRAKE_OK", "ACTUATOR_BRAKE_STATUS", 0),
-      ("STEERING_OK", "ACTUATOR_STEERING_STATUS", 0),
+      ("BRAKE_OK", "OCELOT_BRAKE_STATUS", 0),
+      ("DRIVER_BRAKE_APPLIED", "OCELOT_BRAKE_STATUS", 0),
+      ("PED_GAS", "PEDAL_GAS_SENSOR", 0),
+      ("PED_GAS2", "PEDAL_GAS_SENSOR", 0),
     ]
 
     checks = [
-      ("ACTUATOR_BRAKE_STATUS", 80),
+      ("OCELOT_BRAKE_STATUS", 80),
+      ("PEDAL_GAS_SENSOR", 50),
     ]
 
     return CANParser(DBC[CP.carFingerprint]['pt'], signals, checks, 0)
@@ -106,6 +136,26 @@ class CarState(CarStateBase):
   def get_body_can_parser(CP):
 
     signals = [
+      ("MAIN_ON", "CRUISE_BUTTONS", 0),
+      ("SET_MINUS", "CRUISE_BUTTONS", 0),
+      ("SET_PLUS", "CRUISE_BUTTONS", 0),
+      ("CANCEL", "CRUISE_BUTTONS", 0),
+      ("STEER_ANGLE", "STEER_ANGLE_SENSOR", 0),  
+      ("DIRECTION", "STEER_TORQUE", 0),
+      ("DRIVER_TORQUE", "STEER_TORQUE", 0),
+      ("BRAKE_PRESSED", "GAS_BRAKE", 0),
+      ("FL_ROOR", "DOORS", 0),
+      ("FR_ROOR", "DOORS", 0),
+      ("RL_ROOR", "DOORS", 0),
+      ("RR_ROOR", "DOORS", 0),
+      ("DRIVER_SEATBELT", "SEATBELTS", 0),
+      ("WHEEL_FL", "WHEEL_SPEEDS", 0),
+      ("WHEEL_FR", "WHEEL_SPEEDS", 0),
+      ("WHEEL_RL", "WHEEL_SPEEDS", 0),
+      ("WHEEL_RR", "WHEEL_SPEEDS", 0),
+      ("STEER_RATE", "VSC", 0),
+      ("GEAR", "GEAR_PACKET", 0),
+      ("TURN_SIGNALS", "SIGNAL_STALK", 0),
     ]
 
     # use steering message to check if panda is connected to frc

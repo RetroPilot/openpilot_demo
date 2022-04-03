@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This process publishes joystick events. Such events can be suscribed by
 # mocked car controller scripts.
