@@ -15,6 +15,14 @@ class CAR:
   SMART_ROADSTER_COUPE = "SMART ROADSTER COUPE 2003-2006"
   ALBATROSS = "ALBATROSS"
 
+BUTTON_STATES = {
+  "accelCruise": False,
+  "decelCruise": False,
+  "cancel": False,
+  "setCruise": False,
+  "resumeCruise": False,
+  "gapAdjustCruise": False
+}
 
 FINGERPRINTS = {
   CAR.SMART_ROADSTER_COUPE: [{
@@ -32,5 +40,5 @@ STEER_THRESHOLD = 100
 
 DBC = {
     CAR.SMART_ROADSTER_COUPE: dbc_dict('ocelot_can', 'ford_focus_adas', 'ocelot_smart_roadster_pt'),
-    CAR.ALBATROSS: dbc_dict('ocelot_controls', 'ford_focus_adas', 'ocelot_smart_roadster_pt'),
+    CAR.ALBATROSS: dbc_dict('ocelot_controls', 'ford_focus_adas', 'ford_transit_connect_2015'),
 }

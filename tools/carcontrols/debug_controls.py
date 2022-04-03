@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from common.numpy_fast import clip
 from common.params import Params
 from copy import copy
@@ -58,7 +58,7 @@ def steer_thread():
 
       button_1_last = button_1
 
-      #print "enable", enabled, "steer", actuators.steer, "accel", actuators.gas - actuators.brake
+      print("enable", enabled, "steer", actuators.steer, "accel", actuators.gas - actuators.brake)
 
       hud_alert = 0
       if joystick.testJoystick.buttons[3]:
