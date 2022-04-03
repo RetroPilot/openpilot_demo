@@ -20,6 +20,8 @@ class CarInterface(CarInterfaceBase):
   @staticmethod
   def get_params(candidate, fingerprint=gen_empty_fingerprint(), car_fw=[]):  # pylint: disable=dangerous-default-value
     ret = CarInterfaceBase.get_std_params(candidate, fingerprint)
+    
+    ret.enableCamera = True
 
     ret.carName = "ocelot"
     ret.safetyModel = car.CarParams.SafetyModel.allOutput
