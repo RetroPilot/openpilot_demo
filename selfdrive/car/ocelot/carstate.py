@@ -20,30 +20,31 @@ class CarState(CarStateBase):
     self.oldSpeedDn = False
     self.setSpeed = 10
     self.buttonStates = BUTTON_STATES.copy()
+    self.leverPressOld = False
 
   def update(self, cp, cp_body):
     ret = car.CarState.new_message()
 
     #Car specific information
-    ret.doorOpen =any([cp_body.vl["DOORS"]['FL_DOOR'], cp_body.vl["DOORS"]['FR_DOOR'],
-                        cp_body.vl["DOORS"]['RL_DOOR'], cp_body.vl["DOORS"]['RR_DOOR']]) != 0
-    ret.seatbeltUnlatched = bool(cp_body.vl["SEATBELTS"]["DRIVER_SEATBELT"])
+    ret.doorOpen = False #any([cp_body.vl["DOORS"]['FL_DOOR'], cp_body.vl["DOORS"]['FR_DOOR'],
+                        #cp_body.vl["DOORS"]['RL_DOOR'], cp_body.vl["DOORS"]['RR_DOOR']]) != 0
+    ret.seatbeltUnlatched = False #bool(cp_body.vl["SEATBELTS"]["DRIVER_SEATBELT"])
     ret.leftBlinker = (cp_body.vl["SIGNAL_STALK"]['TURN_SIGNALS'] == 1)
     ret.rightBlinker = (cp_body.vl["SIGNAL_STALK"]['TURN_SIGNALS'] == 3)
     ret.espDisabled = False #cp_body.vl["ABS"]['ESP_STATUS']
-    ret.wheelSpeeds.fl = cp_body.vl["WHEEL_SPEEDS"]['WHEEL_FL'] * CV.MPH_TO_MS
-    ret.wheelSpeeds.fr = cp_body.vl["WHEEL_SPEEDS"]['WHEEL_FR'] * CV.MPH_TO_MS
-    ret.wheelSpeeds.rl = cp_body.vl["WHEEL_SPEEDS"]['WHEEL_RL'] * CV.MPH_TO_MS
-    ret.wheelSpeeds.rr = cp_body.vl["WHEEL_SPEEDS"]['WHEEL_RR'] * CV.MPH_TO_MS
+    ret.wheelSpeeds.fl = cp_body.vl["WHEEL_SPEEDS"]['WHEEL_FL'] * 0.33
+    ret.wheelSpeeds.fr = cp_body.vl["WHEEL_SPEEDS"]['WHEEL_FR'] * 0.33
+    ret.wheelSpeeds.rl = cp_body.vl["WHEEL_SPEEDS"]['WHEEL_RL'] * 0.33
+    ret.wheelSpeeds.rr = cp_body.vl["WHEEL_SPEEDS"]['WHEEL_RR'] * 0.33
     ret.brakeLights = bool(cp_body.vl["GAS_BRAKE"]['BRAKE_PRESSED'])
     can_gear = int(cp_body.vl["GEAR_PACKET"]['GEAR'])
     ret.gearShifter = self.parse_gear_shifter(self.shifter_values.get(can_gear, None))
 
     #Ibooster data
-    ret.brakePressed = bool(cp.vl["OCELOT_BRAKE_STATUS"]['DRIVER_BRAKE_APPLIED'])
+    ret.brakePressed = False #bool(cp.vl["OCELOT_BRAKE_STATUS"]['DRIVER_BRAKE_APPLIED'])
 
     ret.gas = ((cp.vl["PEDAL_GAS_SENSOR"]['PED_GAS'] / 2) + cp.vl["PEDAL_GAS_SENSOR"]['PED_GAS2']) / 2.
-    ret.gasPressed = ret.gas > 260
+    ret.gasPressed = False #ret.gas > 260
 
     # ret.gas = 0
     # ret.gasPressed = False
@@ -68,10 +69,13 @@ class CarState(CarStateBase):
 
     # TODO: handle steering actuator
     ret.steeringTorqueEps = raw_torque * 10 #cp.vl["STEERING_STATUS"]['STEER_TORQUE_EPS']
-    ret.steeringPressed = False #abs(ret.steeringTorque) > STEER_THRESHOLD
+
+    ret.steeringPressed =  (ret.leftBlinker or ret.rightBlinker) and not self.leverPressOld #abs(ret.steeringTorque) > 
+    self.leverPressOld = (ret.leftBlinker or ret.rightBlinker)
+
     ret.steerWarning = False #cp.vl["STEERING_STATUS"]['STEERING_OK'] != 0
 
-    main_on = bool(cp_body.vl["CRUISE_BUTTONS"]['MAIN_ON'])
+    main_on = True #bool(cp_body.vl["CRUISE_BUTTONS"]['MAIN_ON'])
 
     ret.cruiseState.available = main_on
     ret.cruiseState.standstill = False
@@ -84,7 +88,7 @@ class CarState(CarStateBase):
     if not main_on:
       self.enabled = False
 
-    if bool(cp_body.vl["CRUISE_BUTTONS"]['MAIN_ON']):
+    if main_on: #bool(cp_body.vl["CRUISE_BUTTONS"]['MAIN_ON']):
       if bool(self.buttonStates["setCruise"]) and not self.oldEnabled:
         self.enabled = not self.enabled
         if self.enabled:
@@ -93,10 +97,10 @@ class CarState(CarStateBase):
               self.setSpeed = 10
 
     #increase or decrease speed in 5mph increments
-    if cp_body.vl["CRUISE_BUTTONS"]['SET_PLUS']:
+    if cp_body.vl["CRUISE_BUTTONS"]['SET_PLUS'] and not self.oldSpeedUp:
       self.setSpeed = self.setSpeed + 5
 
-    if cp_body.vl["CRUISE_BUTTONS"]['SET_MINUS']:
+    if cp_body.vl["CRUISE_BUTTONS"]['SET_MINUS'] and not self.oldSpeedDn:
       self.setSpeed = self.setSpeed - 5
 
     ret.cruiseState.speed = self.setSpeed * CV.MPH_TO_MS

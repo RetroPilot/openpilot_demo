@@ -38,8 +38,8 @@ class CarInterface(CarInterfaceBase):
     ret.steerRatio = 21
     tire_stiffness_factor = 0.444
     ret.mass = 810 + STD_CARGO_KG
-    ret.lateralTuning.pid.kpV, ret.lateralTuning.pid.kiV = [[0.3], [0.05]]
-    ret.lateralTuning.pid.kf = 0.00007   # full torque for 20 deg at 80mph means 0.00007818594
+    ret.lateralTuning.pid.kpV, ret.lateralTuning.pid.kiV = [[0.1], [0.05]]
+    ret.lateralTuning.pid.kf = 0.00001   # full torque for 20 deg at 80mph means 0.00007818594
 
 
     ret.steerRateCost = 1.
@@ -94,17 +94,17 @@ class CarInterface(CarInterfaceBase):
 
     # events
     events = self.create_common_events(ret)
-
-    if ret.vEgo < self.CP.minEnableSpeed and self.CP.openpilotLongitudinalControl:
-      events.add(EventName.belowEngageSpeed)
-      if c.actuators.gas > 0.1:
-        # some margin on the actuator to not false trigger cancellation while stopping
-        events.add(EventName.speedTooLow)
-      if ret.vEgo < 0.001:
-        # while in standstill, send a user alert
-        events.add(EventName.manualRestart)
+    if not ret.cruiseState.enabled:
+      events.add(EventName.pcmDisable)
+    # Attempt OP engagement only on rising edge of stock ACC engagement.
+    elif not self.cruise_enabled_prev:
+      events.add(EventName.pcmEnable)
 
     ret.events = events.to_msg()
+
+    # update previous car states
+
+    self.cruise_enabled_prev = ret.cruiseState.enabled
 
     self.CS.out = ret.as_reader()
     return self.CS.out
