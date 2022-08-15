@@ -1,7 +1,7 @@
 from cereal import car
 from common.numpy_fast import clip
 from selfdrive.car import apply_toyota_steer_torque_limits
-from selfdrive.car.ocelot.ocelotcan import create_steer_command, create_gas_command, create_brake_cmd
+from selfdrive.car.ocelot.ocelotcan import create_steer_command, create_gas_command, create_brake_cmd, pla_ctrl
 from selfdrive.car.ocelot.values import SteerLimitParams
 from opendbc.can.packer import CANPacker
 
@@ -96,14 +96,17 @@ class CarController():
     # sending it at 100Hz seem to allow a higher rate limit, as the rate limit seems imposed
     # on consecutive messages
     
-    can_sends.append(create_steer_command(self.packer, apply_steer, apply_steer_req, frame))
+    # can_sends.append(create_steer_command(self.packer, apply_steer, apply_steer_req, frame))
 
-    if (frame % 2 == 0):
+    # if (frame % 2 == 0):
       # send exactly zero if apply_gas is zero. Interceptor will send the max between read value and apply_gas.
       # This prevents unexpected pedal range rescaling
-      can_sends.append(create_gas_command(self.packer, apply_gas, frame//2))
+      # can_sends.append(create_gas_command(self.packer, apply_gas, frame//2))
     
-    can_sends.append(create_brake_cmd(self.packer, enabled, actuators.brake, frame))
+    # can_sends.append(create_brake_cmd(self.packer, enabled, actuators.brake, frame))
+
+    if (frame % 2 == 0):
+      can_sends.append(pla_ctrl(self.packer, 2, enabled, actuators.steer, frame//2))
 
     # ui mesg is at 100Hz but we send asap if:
     # - there is something to display
