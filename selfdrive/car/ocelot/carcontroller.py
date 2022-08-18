@@ -43,6 +43,11 @@ class CarController():
 
     self.packer = CANPacker(dbc_name)
 
+    self.enabled_last = False
+    self.pla_status = 8
+    self.pla_counter = 0
+    self.pla_brake = 8
+
   def update(self, enabled, CS, frame, actuators, pcm_cancel_cmd, hud_alert,
              left_line, right_line, lead, left_lane_depart, right_lane_depart):
 
@@ -106,7 +111,31 @@ class CarController():
     # can_sends.append(create_brake_cmd(self.packer, enabled, actuators.brake, frame))
 
     if (frame % 2 == 0):
-      can_sends.append(pla_ctrl(self.packer, 2, enabled, actuators.steer, frame//2))
+     # if self.pla_status > 15:
+     #     self.pla_status = 0
+     # if enabled and not self.enabled_last:
+     #   self.pla_status += 1
+     #   self.enabled_last = True
+     # elif not enabled:
+     #   self.enabled_last = False
+     # print(self.pla_status)
+
+      if enabled:
+        self.pla_status = 4
+        self.pla_brake = 4
+        self.pla_counter += 1
+        if self.pla_counter >= 11:
+          self.pla_status = 6
+        if self.pla_counter >= 32:
+          self.pla_brake = 6
+      else: 
+        self.pla_status = 8
+        self.pla_brake = 8
+        self.pla_counter = 0
+      
+      print("pla_status: ", self.pla_status, "pla_brake: ", self.pla_brake)
+
+      can_sends.append(pla_ctrl(self.packer, 1, enabled, self.pla_status, self.pla_brake, actuators.steer * 1433, frame//2))
 
     # ui mesg is at 100Hz but we send asap if:
     # - there is something to display

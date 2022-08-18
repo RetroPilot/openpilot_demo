@@ -41,10 +41,11 @@ def create_brake_cmd(packer, enabled, brake, raw_cnt):
 def xor_pa(data, length):
   csum = 0
   for i in range(length):
+    #print(data[i])
     csum ^= data[i+1] # first byte is the checksum
   return csum
 
-def pla_ctrl(packer, bus, enabled, steer_angle, idx):
+def pla_ctrl(packer, bus, enabled, status, brake_status, steer_angle, idx):
 
   # Braking_state:
   # 4 = activateable
@@ -55,10 +56,10 @@ def pla_ctrl(packer, bus, enabled, steer_angle, idx):
 
   values = { 
     "PLA_Zaehler": idx,
-    "PLA_Status": 13 if enabled else 11, # set this based off drive
-    "Steering_angle": abs(steer_angle)*1400 if enabled else 0,
+    "PLA_Status": status, # if enabled else 11, # set this based off drive
+    "Steering_angle": abs(steer_angle),
     "Steering_direction": 0 if (steer_angle < 0) else 1,
-    "Braking_state": 8,
+    "Braking_state": brake_status,
     "Braking_torque": 0, # Nm
   }
   dat = packer.make_can_msg("ParkAssist", bus, values)[2]

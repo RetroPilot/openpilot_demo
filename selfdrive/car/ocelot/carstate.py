@@ -42,6 +42,10 @@ class CarState(CarStateBase):
     #Ibooster data
     ret.brakePressed = bool(cp.vl["OCELOT_BRAKE_STATUS"]['DRIVER_BRAKE_APPLIED'])
 
+    eps_status = cp.vl["Lenkhilfe_2"]['LH2_aktLenkeingriff']
+    other_shit = cp.vl["Lenkhilfe_2"]['LH2_StatEPS_PLA']
+    print("EPS BULLSHIT: ", eps_status, other_shit)
+
     ret.gas = ((cp.vl["PEDAL_GAS_SENSOR"]['PED_GAS'] / 2) + cp.vl["PEDAL_GAS_SENSOR"]['PED_GAS2']) / 2.
     ret.gasPressed = ret.gas > 260
 
