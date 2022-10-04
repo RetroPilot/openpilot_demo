@@ -1,20 +1,12 @@
-#def create_steer_command(packer, steer, mode, raw_cnt):
-#  """Creates a CAN message for the Seb Smith EPAS Steer Command."""
-#
-#  values = {
-#    "STEER_MODE": mode,
-#    "REQUESTED_STEER_TORQUE": steer,
-#    "COUNTER": raw_cnt,
-#  }
-#  return packer.make_can_msg("OCELOT_STEERING_COMMAND", 2, values)
-
 def create_steer_command(packer, steer, mode, raw_cnt):
-  """Creates a CAN message for the Seb Smith EPAS Steer Command."""
+  # Creates a steer command for Ocelot Steer controller and RP Steer Actuator
 
   values = {
-    "STEER_TORQUE_CMD": -steer * 18,
+    "STEER_MODE": mode,
+    "REQUESTED_STEER_TORQUE": steer,
+    "COUNTER": raw_cnt,
   }
-  return packer.make_can_msg("STEER_COMMAND", 2, values)
+  return packer.make_can_msg("OCELOT_STEERING_COMMAND", 2, values)
 
 def create_gas_command(packer, gas_amount, idx):
   # Common gas pedal msg generator

@@ -32,10 +32,10 @@ class CarState(CarStateBase):
     ret.leftBlinker = (cp_body.vl["SIGNAL_STALK"]['TURN_SIGNALS'] == 1)
     ret.rightBlinker = (cp_body.vl["SIGNAL_STALK"]['TURN_SIGNALS'] == 3)
     ret.espDisabled = False #cp_body.vl["ABS"]['ESP_STATUS']
-    ret.wheelSpeeds.fl = cp_body.vl["WHEEL_SPEEDS"]['WHEEL_FL'] * 0.33
-    ret.wheelSpeeds.fr = cp_body.vl["WHEEL_SPEEDS"]['WHEEL_FR'] * 0.33
-    ret.wheelSpeeds.rl = cp_body.vl["WHEEL_SPEEDS"]['WHEEL_RL'] * 0.33
-    ret.wheelSpeeds.rr = cp_body.vl["WHEEL_SPEEDS"]['WHEEL_RR'] * 0.33
+    ret.wheelSpeeds.fl = cp_body.vl["WHEEL_SPEEDS"]['WHEEL_FL'] * 0.3333
+    ret.wheelSpeeds.fr = cp_body.vl["WHEEL_SPEEDS"]['WHEEL_FR'] * 0.3333
+    ret.wheelSpeeds.rl = cp_body.vl["WHEEL_SPEEDS"]['WHEEL_RL'] * 0.3333
+    ret.wheelSpeeds.rr = cp_body.vl["WHEEL_SPEEDS"]['WHEEL_RR'] * 0.3333
     ret.brakeLights = bool(cp_body.vl["GAS_BRAKE"]['BRAKE_PRESSED'])
     can_gear = int(cp_body.vl["GEAR_PACKET"]['GEAR'])
     ret.gearShifter = self.parse_gear_shifter(self.shifter_values.get(can_gear, None))
