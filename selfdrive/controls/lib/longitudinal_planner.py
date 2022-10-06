@@ -14,13 +14,18 @@ from selfdrive.controls.lib.fcw import FCWChecker
 from selfdrive.controls.lib.long_mpc import LongitudinalMpc
 from selfdrive.controls.lib.drive_helpers import V_CRUISE_MAX
 
+from math import sin, cos, sqrt, atan2, radians
+
+stoppedCounter = 0;
+stoppedCounterTwo = 0;
+
 LON_MPC_STEP = 0.2  # first step is 0.2s
 AWARENESS_DECEL = -0.2     # car smoothly decel at .2m/s^2 when user is distracted
 
 # lookup tables VS speed to determine min and max accels in cruise
 # make sure these accelerations are smaller than mpc limits
 _A_CRUISE_MIN_V = [-1.0, -.8, -.67, -.5, -.30]
-_A_CRUISE_MIN_BP = [  0.,  5.,  10., 20.,  40.]
+_A_CRUISE_MIN_BP = [0.,  5.,  10., 20.,  40.]
 
 # need fast accel at very low speed for stop and go
 # make sure these accelerations are smaller than mpc limits
@@ -33,185 +38,292 @@ _A_TOTAL_MAX_V = [1.7, 3.2]
 _A_TOTAL_MAX_BP = [20., 40.]
 
 
-def calc_cruise_accel_limits(v_ego, following):
-  a_cruise_min = interp(v_ego, _A_CRUISE_MIN_BP, _A_CRUISE_MIN_V)
+def distance_gps(curLat, curLon, desLat, desLon):
 
-  if following:
-    a_cruise_max = interp(v_ego, _A_CRUISE_MAX_BP, _A_CRUISE_MAX_V_FOLLOWING)
-  else:
-    a_cruise_max = interp(v_ego, _A_CRUISE_MAX_BP, _A_CRUISE_MAX_V)
-  return np.vstack([a_cruise_min, a_cruise_max])
+    # approximate radius of earth in km
+    R = 6373.0
+
+    lat1 = math.radians(curLat)
+    lon1 = math.radians(curLon)
+    lat2 = math.radians(desLat)
+    lon2 = math.radians(desLon)
+
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+
+    a = math.sin(dlat / 2)**2 + math.cos(lat1) * \
+        math.cos(lat2) * math.sin(dlon / 2)**2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+    distance = R * c * 1000  # convert km to m
+    return distance
+
+
+def calc_cruise_accel_limits(v_ego, following):
+    a_cruise_min = interp(v_ego, _A_CRUISE_MIN_BP, _A_CRUISE_MIN_V)
+
+    if following:
+        a_cruise_max = interp(v_ego, _A_CRUISE_MAX_BP,
+                              _A_CRUISE_MAX_V_FOLLOWING)
+    else:
+        a_cruise_max = interp(v_ego, _A_CRUISE_MAX_BP, _A_CRUISE_MAX_V)
+    return np.vstack([a_cruise_min, a_cruise_max])
 
 
 def limit_accel_in_turns(v_ego, angle_steers, a_target, CP):
-  """
-  This function returns a limited long acceleration allowed, depending on the existing lateral acceleration
-  this should avoid accelerating when losing the target in turns
-  """
+    """
+    This function returns a limited long acceleration allowed, depending on the existing lateral acceleration
+    this should avoid accelerating when losing the target in turns
+    """
 
-  a_total_max = interp(v_ego, _A_TOTAL_MAX_BP, _A_TOTAL_MAX_V)
-  a_y = v_ego**2 * angle_steers * CV.DEG_TO_RAD / (CP.steerRatio * CP.wheelbase)
-  a_x_allowed = math.sqrt(max(a_total_max**2 - a_y**2, 0.))
+    a_total_max = interp(v_ego, _A_TOTAL_MAX_BP, _A_TOTAL_MAX_V)
+    a_y = v_ego**2 * angle_steers * CV.DEG_TO_RAD / \
+        (CP.steerRatio * CP.wheelbase)
+    a_x_allowed = math.sqrt(max(a_total_max**2 - a_y**2, 0.))
 
-  return [a_target[0], min(a_target[1], a_x_allowed)]
+    return [a_target[0], min(a_target[1], a_x_allowed)]
 
 
 class Planner():
-  def __init__(self, CP):
-    self.CP = CP
+    def __init__(self, CP):
+        self.CP = CP
 
-    self.mpc1 = LongitudinalMpc(1)
-    self.mpc2 = LongitudinalMpc(2)
+        self.mpc1 = LongitudinalMpc(1)
+        self.mpc2 = LongitudinalMpc(2)
 
-    self.v_acc_start = 0.0
-    self.a_acc_start = 0.0
-    self.v_acc_next = 0.0
-    self.a_acc_next = 0.0
+        self.v_acc_start = 0.0
+        self.a_acc_start = 0.0
+        self.v_acc_next = 0.0
+        self.a_acc_next = 0.0
 
-    self.v_acc = 0.0
-    self.v_acc_future = 0.0
-    self.a_acc = 0.0
-    self.v_cruise = 0.0
-    self.a_cruise = 0.0
+        self.v_acc = 0.0
+        self.v_acc_future = 0.0
+        self.a_acc = 0.0
+        self.v_cruise = 0.0
+        self.a_cruise = 0.0
 
-    self.longitudinalPlanSource = 'cruise'
-    self.fcw_checker = FCWChecker()
-    self.path_x = np.arange(192)
+        self.longitudinalPlanSource = 'cruise'
+        self.fcw_checker = FCWChecker()
+        self.path_x = np.arange(192)
 
-    self.fcw = False
+        self.fcw = False
 
-    self.params = Params()
-    self.first_loop = True
+        self.params = Params()
+        self.first_loop = True
 
-  def choose_solution(self, v_cruise_setpoint, enabled):
-    if enabled:
-      solutions = {'cruise': self.v_cruise}
-      if self.mpc1.prev_lead_status:
-        solutions['mpc1'] = self.mpc1.v_mpc
-      if self.mpc2.prev_lead_status:
-        solutions['mpc2'] = self.mpc2.v_mpc
+    def choose_solution(self, v_cruise_setpoint, enabled):
+        if enabled:
+            solutions = {'cruise': self.v_cruise}
+            if self.mpc1.prev_lead_status:
+                solutions['mpc1'] = self.mpc1.v_mpc
+            if self.mpc2.prev_lead_status:
+                solutions['mpc2'] = self.mpc2.v_mpc
 
-      slowest = min(solutions, key=solutions.get)
+            slowest = min(solutions, key=solutions.get)
 
-      self.longitudinalPlanSource = slowest
-      # Choose lowest of MPC and cruise
-      if slowest == 'mpc1':
-        self.v_acc = self.mpc1.v_mpc
-        self.a_acc = self.mpc1.a_mpc
-      elif slowest == 'mpc2':
-        self.v_acc = self.mpc2.v_mpc
-        self.a_acc = self.mpc2.a_mpc
-      elif slowest == 'cruise':
-        self.v_acc = self.v_cruise
-        self.a_acc = self.a_cruise
+            self.longitudinalPlanSource = slowest
+            # Choose lowest of MPC and cruise
+            if slowest == 'mpc1':
+                self.v_acc = self.mpc1.v_mpc
+                self.a_acc = self.mpc1.a_mpc
+            elif slowest == 'mpc2':
+                self.v_acc = self.mpc2.v_mpc
+                self.a_acc = self.mpc2.a_mpc
+            elif slowest == 'cruise':
+                self.v_acc = self.v_cruise
+                self.a_acc = self.a_cruise
 
-    self.v_acc_future = min([self.mpc1.v_mpc_future, self.mpc2.v_mpc_future, v_cruise_setpoint])
+        self.v_acc_future = min(
+            [self.mpc1.v_mpc_future, self.mpc2.v_mpc_future, v_cruise_setpoint])
 
-  def update(self, sm, CP):
-    """Gets called when new radarState is available"""
-    cur_time = sec_since_boot()
-    v_ego = sm['carState'].vEgo
+    def update(self, sm, CP):
+        """Gets called when new radarState is available"""
+        cur_time = sec_since_boot()
+        v_ego = sm['carState'].vEgo
 
-    long_control_state = sm['controlsState'].longControlState
-    v_cruise_kph = sm['controlsState'].vCruise
-    force_slow_decel = sm['controlsState'].forceDecel
+        long_control_state = sm['controlsState'].longControlState
+        v_cruise_kph = sm['controlsState'].vCruise
+        force_slow_decel = sm['controlsState'].forceDecel
 
-    v_cruise_kph = min(v_cruise_kph, V_CRUISE_MAX)
-    v_cruise_setpoint = v_cruise_kph * CV.KPH_TO_MS
+        v_cruise_kph = min(v_cruise_kph, V_CRUISE_MAX)
+        v_cruise_setpoint = v_cruise_kph * CV.KPH_TO_MS
 
-    lead_1 = sm['radarState'].leadOne
-    lead_2 = sm['radarState'].leadTwo
+        lead_1 = sm['radarState'].leadOne
+        lead_2 = sm['radarState'].leadTwo
 
-    enabled = (long_control_state == LongCtrlState.pid) or (long_control_state == LongCtrlState.stopping)
-    following = lead_1.status and lead_1.dRel < 45.0 and lead_1.vLeadK > v_ego and lead_1.aLeadK > 0.0
+        enabled = (long_control_state == LongCtrlState.pid) or (
+            long_control_state == LongCtrlState.stopping)
+        following = lead_1.status and lead_1.dRel < 45.0 and lead_1.vLeadK > v_ego and lead_1.aLeadK > 0.0
 
-    self.v_acc_start = self.v_acc_next
-    self.a_acc_start = self.a_acc_next
+        self.v_acc_start = self.v_acc_next
+        self.a_acc_start = self.a_acc_next
 
-    # Calculate speed for normal cruise control
-    if enabled and not self.first_loop and not sm['carState'].gasPressed:
-      accel_limits = [float(x) for x in calc_cruise_accel_limits(v_ego, following)]
-      jerk_limits = [min(-0.1, accel_limits[0]), max(0.1, accel_limits[1])]  # TODO: make a separate lookup for jerk tuning
-      accel_limits_turns = limit_accel_in_turns(v_ego, sm['carState'].steeringAngleDeg, accel_limits, self.CP)
+        # Calculate speed for normal cruise control
+        if enabled and not self.first_loop and not sm['carState'].gasPressed:
+            accel_limits = [float(x)
+                            for x in calc_cruise_accel_limits(v_ego, following)]
+            # TODO: make a separate lookup for jerk tuning
+            jerk_limits = [min(-0.1, accel_limits[0]),
+                           max(0.1, accel_limits[1])]
+            accel_limits_turns = limit_accel_in_turns(
+                v_ego, sm['carState'].steeringAngleDeg, accel_limits, self.CP)
 
-      if force_slow_decel:
-        # if required so, force a smooth deceleration
-        accel_limits_turns[1] = min(accel_limits_turns[1], AWARENESS_DECEL)
-        accel_limits_turns[0] = min(accel_limits_turns[0], accel_limits_turns[1])
+            if force_slow_decel:
+                # if required so, force a smooth deceleration
+                accel_limits_turns[1] = min(
+                    accel_limits_turns[1], AWARENESS_DECEL)
+                accel_limits_turns[0] = min(
+                    accel_limits_turns[0], accel_limits_turns[1])
 
-      self.v_cruise, self.a_cruise = speed_smoother(self.v_acc_start, self.a_acc_start,
-                                                    v_cruise_setpoint,
-                                                    accel_limits_turns[1], accel_limits_turns[0],
-                                                    jerk_limits[1], jerk_limits[0],
-                                                    LON_MPC_STEP)
+            self.v_cruise, self.a_cruise = speed_smoother(self.v_acc_start, self.a_acc_start,
+                                                          v_cruise_setpoint,
+                                                          accel_limits_turns[1], accel_limits_turns[0],
+                                                          jerk_limits[1], jerk_limits[0],
+                                                          LON_MPC_STEP)
 
-      # cruise speed can't be negative even is user is distracted
-      self.v_cruise = max(self.v_cruise, 0.)
-    else:
-      starting = long_control_state == LongCtrlState.starting
-      a_ego = min(sm['carState'].aEgo, 0.0)
-      reset_speed = self.CP.minSpeedCan if starting else v_ego
-      reset_accel = self.CP.startAccel if starting else a_ego
-      self.v_acc = reset_speed
-      self.a_acc = reset_accel
-      self.v_acc_start = reset_speed
-      self.a_acc_start = reset_accel
-      self.v_cruise = reset_speed
-      self.a_cruise = reset_accel
+            # cruise speed can't be negative even is user is distracted
+            self.v_cruise = max(self.v_cruise, 0.)
+        else:
+            starting = long_control_state == LongCtrlState.starting
+            a_ego = min(sm['carState'].aEgo, 0.0)
+            reset_speed = self.CP.minSpeedCan if starting else v_ego
+            reset_accel = self.CP.startAccel if starting else a_ego
+            self.v_acc = reset_speed
+            self.a_acc = reset_accel
+            self.v_acc_start = reset_speed
+            self.a_acc_start = reset_accel
+            self.v_cruise = reset_speed
+            self.a_cruise = reset_accel
 
-    self.mpc1.set_cur_state(self.v_acc_start, self.a_acc_start)
-    self.mpc2.set_cur_state(self.v_acc_start, self.a_acc_start)
+        self.mpc1.set_cur_state(self.v_acc_start, self.a_acc_start)
+        self.mpc2.set_cur_state(self.v_acc_start, self.a_acc_start)
 
-    self.mpc1.update(sm['carState'], lead_1)
-    self.mpc2.update(sm['carState'], lead_2)
+        self.mpc1.update(sm['carState'], lead_1)
+        self.mpc2.update(sm['carState'], lead_2)
 
-    self.choose_solution(v_cruise_setpoint, enabled)
+        self.choose_solution(v_cruise_setpoint, enabled)
 
-    # determine fcw
-    if self.mpc1.new_lead:
-      self.fcw_checker.reset_lead(cur_time)
+        # determine fcw
+        if self.mpc1.new_lead:
+            self.fcw_checker.reset_lead(cur_time)
 
-    blinkers = sm['carState'].leftBlinker or sm['carState'].rightBlinker
-    self.fcw = self.fcw_checker.update(self.mpc1.mpc_solution, cur_time,
-                                       sm['controlsState'].active,
-                                       v_ego, sm['carState'].aEgo,
-                                       lead_1.dRel, lead_1.vLead, lead_1.aLeadK,
-                                       lead_1.yRel, lead_1.vLat,
-                                       lead_1.fcw, blinkers) and not sm['carState'].brakePressed
-    if self.fcw:
-      cloudlog.info("FCW triggered %s", self.fcw_checker.counters)
+        blinkers = sm['carState'].leftBlinker or sm['carState'].rightBlinker
+        self.fcw = self.fcw_checker.update(self.mpc1.mpc_solution, cur_time,
+                                           sm['controlsState'].active,
+                                           v_ego, sm['carState'].aEgo,
+                                           lead_1.dRel, lead_1.vLead, lead_1.aLeadK,
+                                           lead_1.yRel, lead_1.vLat,
+                                           lead_1.fcw, blinkers) and not sm['carState'].brakePressed
+        if self.fcw:
+            cloudlog.info("FCW triggered %s", self.fcw_checker.counters)
 
-    # Interpolate 0.05 seconds and save as starting point for next iteration
-    a_acc_sol = self.a_acc_start + (CP.radarTimeStep / LON_MPC_STEP) * (self.a_acc - self.a_acc_start)
-    v_acc_sol = self.v_acc_start + CP.radarTimeStep * (a_acc_sol + self.a_acc_start) / 2.0
-    self.v_acc_next = v_acc_sol
-    self.a_acc_next = a_acc_sol
+        # Interpolate 0.05 seconds and save as starting point for next iteration
+        a_acc_sol = self.a_acc_start + \
+            (CP.radarTimeStep / LON_MPC_STEP) * (self.a_acc - self.a_acc_start)
+        v_acc_sol = self.v_acc_start + CP.radarTimeStep * \
+            (a_acc_sol + self.a_acc_start) / 2.0
+        self.v_acc_next = v_acc_sol
+        self.a_acc_next = a_acc_sol
 
-    self.first_loop = False
+        self.first_loop = False
+    
+    
+    def publish(self, sm, pm):
 
-  def publish(self, sm, pm):
-    self.mpc1.publish(pm)
-    self.mpc2.publish(pm)
+        global stoppedCounter
+        global stoppedCounterTwo
+        self.mpc1.publish(pm)
+        self.mpc2.publish(pm)
 
-    plan_send = messaging.new_message('longitudinalPlan')
+        # want to see whats outputted, if we can get gps implement function to calulate distance
 
-    plan_send.valid = sm.all_alive_and_valid(service_list=['carState', 'controlsState', 'radarState'])
+        gpsLocation = sm["liveLocationKalman"]
+        carState = sm["liveLocationKalman"]
+        # assuming
 
-    longitudinalPlan = plan_send.longitudinalPlan
-    longitudinalPlan.mdMonoTime = sm.logMonoTime['modelV2']
-    longitudinalPlan.radarStateMonoTime = sm.logMonoTime['radarState']
+        coords = gpsLocation.positionGeodetic.value
 
-    longitudinalPlan.vCruise = float(self.v_cruise)
-    longitudinalPlan.aCruise = float(self.a_cruise)
-    longitudinalPlan.vStart = float(self.v_acc_start)
-    longitudinalPlan.aStart = float(self.a_acc_start)
-    longitudinalPlan.vTarget = float(self.v_acc)
-    longitudinalPlan.aTarget = float(self.a_acc)
-    longitudinalPlan.vTargetFuture = float(self.v_acc_future)
-    longitudinalPlan.hasLead = self.mpc1.prev_lead_status
-    longitudinalPlan.longitudinalPlanSource = self.longitudinalPlanSource
-    longitudinalPlan.fcw = self.fcw
+        #cloudlog.debug(coords)
 
-    longitudinalPlan.processingDelay = (plan_send.logMonoTime / 1e9) - sm.rcv_time['radarState']
+        plan_send = messaging.new_message('longitudinalPlan')
 
-    pm.send('longitudinalPlan', plan_send)
+        # Users will be expecting location to be good
+        plan_send.valid = sm.all_alive_and_valid(
+            service_list=['carState', 'controlsState', 'radarState', 'liveLocationKalman'])
+
+        longitudinalPlan = plan_send.longitudinalPlan
+        longitudinalPlan.mdMonoTime = sm.logMonoTime['modelV2']
+        longitudinalPlan.radarStateMonoTime = sm.logMonoTime['radarState']
+
+        longitudinalPlan.vCruise = float(self.v_cruise)
+        longitudinalPlan.aCruise = float(self.a_cruise)
+        longitudinalPlan.vStart = float(self.v_acc_start)
+        longitudinalPlan.aStart = float(self.a_acc_start)
+        longitudinalPlan.vTarget = float(self.v_acc)
+        longitudinalPlan.aTarget = float(self.a_acc)
+        longitudinalPlan.vTargetFuture = float(self.v_acc_future)
+        longitudinalPlan.hasLead = self.mpc1.prev_lead_status
+        longitudinalPlan.longitudinalPlanSource = self.longitudinalPlanSource
+        longitudinalPlan.fcw = self.fcw
+
+
+        #cloudlog.debug("vcruise " + str(float(self.v_cruise))  )
+       
+        #cloudlog.debug("aCruise "+ str(float(self.a_cruise)   ))
+        #cloudlog.debug( "vStart "+ str(float(self.v_acc_start)  ))
+        #cloudlog.debug("vTarget "+  str(float(self.v_acc)  ))
+        #cloudlog.debug( "aTarget "+ str(float(self.a_acc)  ))
+        #cloudlog.debug("vTargetFuture "+   str(float(self.v_acc_future) ))
+        #cloudlog.debug( "hasLead "+ str(self.mpc1.prev_lead_status  ))
+        #cloudlog.debug("longitudinalPlanSource "+ str(self.longitudinalPlanSource   ))
+        #cloudlog.debug("fcw "+ str(self.fcw   ))
+
+        
+
+        if len(coords) > 0:
+            #cloudlog.debug('distance: ', distance_gps(coords[0], coords[1], 30.5686671659762, -96.389003476466))
+            actualSpeed = float(sm['carState'].wheelSpeeds.fr)
+            #cloudlog.debug("wheel speed " + str(actualSpeed))
+            distanceToStopOne = distance_gps(
+            coords[0], coords[1], 30.563902095024126, -96.25004729897357) # 30.562366445249236, -96.251769903286146
+            
+            distanceToStopTwo = distance_gps(
+            coords[0], coords[1], 30.562366445249236, -96.251769903286146) # ,
+            #cloudlog.debug("distance to stop: " + str(distanceToStop))
+            #cloudlog.debug("should stop " + str(distanceToStop < 50))
+            #cloudlog.debug("should stop cont " + str(stoppedCounter < 300) + " counter: "+str(stoppedCounter))
+            if (distanceToStopOne < 7.5 and stoppedCounter < 300):
+                cloudlog.debug(distanceToStopOne)
+                if (actualSpeed <= 0):
+                    stoppedCounter += 1
+                cloudlog.debug("STOP")
+                longitudinalPlan.vCruise = float(0)
+                longitudinalPlan.aCruise = float(0)
+                longitudinalPlan.vStart = float(0)
+                longitudinalPlan.aStart = float(0)
+                longitudinalPlan.vTarget = float(0)
+                longitudinalPlan.aTarget = float(0)
+                longitudinalPlan.vTargetFuture = float(0)
+            else:
+                if (distanceToStopOne > 7.5):
+                    stoppedCounter = 0
+            if (distanceToStopTwo < 7.5 and stoppedCounterTwo < 300):
+                cloudlog.debug(distanceToStopTwo)
+                if (actualSpeed <= 0):
+                    stoppedCounterTwo += 1
+                cloudlog.debug("STOP2")
+                longitudinalPlan.vCruise = float(0)
+                longitudinalPlan.aCruise = float(0)
+                longitudinalPlan.vStart = float(0)
+                longitudinalPlan.aStart = float(0)
+                longitudinalPlan.vTarget = float(0)
+                longitudinalPlan.aTarget = float(0)
+                longitudinalPlan.vTargetFuture = float(0)
+            else:
+                if (distanceToStopTwo > 7.5):
+                    stoppedCounterTwo = 0
+
+        longitudinalPlan.processingDelay = (
+            plan_send.logMonoTime / 1e9) - sm.rcv_time['radarState']
+        pm.send('longitudinalPlan', plan_send)
+

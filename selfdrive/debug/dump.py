@@ -5,6 +5,8 @@ import argparse
 import json
 from hexdump import hexdump
 import codecs
+import requests
+
 codecs.register_error("strict", codecs.backslashreplace_errors)
 
 from cereal import log
@@ -52,7 +54,9 @@ if __name__ == "__main__":
         elif args.json:
           print(json.loads(msg))
         elif args.dump_json:
-          print(json.dumps(evt.to_dict()))
+          gps = json.dumps(evt.to_dict()["liveLocationKalman"]["positionGeodetic"]["value"])
+          print(gps)
+          requests.post(f"http://192.168.1.18:8080/?gps="+gps)
         elif values:
           print("logMonotime = {}".format(evt.logMonoTime))
           for value in values:
