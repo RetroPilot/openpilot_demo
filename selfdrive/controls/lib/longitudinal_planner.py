@@ -14,11 +14,6 @@ from selfdrive.controls.lib.fcw import FCWChecker
 from selfdrive.controls.lib.long_mpc import LongitudinalMpc
 from selfdrive.controls.lib.drive_helpers import V_CRUISE_MAX
 
-from math import sin, cos, sqrt, atan2, radians
-
-stoppedCounter = 0;
-stoppedCounterTwo = 0;
-
 LON_MPC_STEP = 0.2  # first step is 0.2s
 AWARENESS_DECEL = -0.2     # car smoothly decel at .2m/s^2 when user is distracted
 
@@ -36,27 +31,6 @@ _A_CRUISE_MAX_BP = [0.,  6.4, 22.5, 40.]
 # Lookup table for turns
 _A_TOTAL_MAX_V = [1.7, 3.2]
 _A_TOTAL_MAX_BP = [20., 40.]
-
-
-def distance_gps(curLat, curLon, desLat, desLon):
-
-    # approximate radius of earth in km
-    R = 6373.0
-
-    lat1 = math.radians(curLat)
-    lon1 = math.radians(curLon)
-    lat2 = math.radians(desLat)
-    lon2 = math.radians(desLon)
-
-    dlon = lon2 - lon1
-    dlat = lat2 - lat1
-
-    a = math.sin(dlat / 2)**2 + math.cos(lat1) * \
-        math.cos(lat2) * math.sin(dlon / 2)**2
-    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-
-    distance = R * c * 1000  # convert km to m
-    return distance
 
 
 def calc_cruise_accel_limits(v_ego, following):
@@ -230,26 +204,14 @@ class Planner():
     
     def publish(self, sm, pm):
 
-        global stoppedCounter
-        global stoppedCounterTwo
         self.mpc1.publish(pm)
         self.mpc2.publish(pm)
-
-        # want to see whats outputted, if we can get gps implement function to calulate distance
-
-        gpsLocation = sm["liveLocationKalman"]
-        carState = sm["liveLocationKalman"]
-        # assuming
-
-        coords = gpsLocation.positionGeodetic.value
-
-        #cloudlog.debug(coords)
 
         plan_send = messaging.new_message('longitudinalPlan')
 
         # Users will be expecting location to be good
         plan_send.valid = sm.all_alive_and_valid(
-            service_list=['carState', 'controlsState', 'radarState', 'liveLocationKalman'])
+            service_list=['carState', 'controlsState', 'radarState'])
 
         longitudinalPlan = plan_send.longitudinalPlan
         longitudinalPlan.mdMonoTime = sm.logMonoTime['modelV2']
@@ -265,63 +227,6 @@ class Planner():
         longitudinalPlan.hasLead = self.mpc1.prev_lead_status
         longitudinalPlan.longitudinalPlanSource = self.longitudinalPlanSource
         longitudinalPlan.fcw = self.fcw
-
-
-        #cloudlog.debug("vcruise " + str(float(self.v_cruise))  )
-       
-        #cloudlog.debug("aCruise "+ str(float(self.a_cruise)   ))
-        #cloudlog.debug( "vStart "+ str(float(self.v_acc_start)  ))
-        #cloudlog.debug("vTarget "+  str(float(self.v_acc)  ))
-        #cloudlog.debug( "aTarget "+ str(float(self.a_acc)  ))
-        #cloudlog.debug("vTargetFuture "+   str(float(self.v_acc_future) ))
-        #cloudlog.debug( "hasLead "+ str(self.mpc1.prev_lead_status  ))
-        #cloudlog.debug("longitudinalPlanSource "+ str(self.longitudinalPlanSource   ))
-        #cloudlog.debug("fcw "+ str(self.fcw   ))
-
-        
-
-        if len(coords) > 0:
-            #cloudlog.debug('distance: ', distance_gps(coords[0], coords[1], 30.5686671659762, -96.389003476466))
-            actualSpeed = float(sm['carState'].wheelSpeeds.fr)
-            #cloudlog.debug("wheel speed " + str(actualSpeed))
-            distanceToStopOne = distance_gps(
-            coords[0], coords[1], 30.563902095024126, -96.25004729897357) # 30.562366445249236, -96.251769903286146
-            
-            distanceToStopTwo = distance_gps(
-            coords[0], coords[1], 30.562366445249236, -96.251769903286146) # ,
-            #cloudlog.debug("distance to stop: " + str(distanceToStop))
-            #cloudlog.debug("should stop " + str(distanceToStop < 50))
-            #cloudlog.debug("should stop cont " + str(stoppedCounter < 300) + " counter: "+str(stoppedCounter))
-            if (distanceToStopOne < 7.5 and stoppedCounter < 300):
-                cloudlog.debug(distanceToStopOne)
-                if (actualSpeed <= 0):
-                    stoppedCounter += 1
-                cloudlog.debug("STOP")
-                longitudinalPlan.vCruise = float(0)
-                longitudinalPlan.aCruise = float(0)
-                longitudinalPlan.vStart = float(0)
-                longitudinalPlan.aStart = float(0)
-                longitudinalPlan.vTarget = float(0)
-                longitudinalPlan.aTarget = float(0)
-                longitudinalPlan.vTargetFuture = float(0)
-            else:
-                if (distanceToStopOne > 7.5):
-                    stoppedCounter = 0
-            if (distanceToStopTwo < 7.5 and stoppedCounterTwo < 300):
-                cloudlog.debug(distanceToStopTwo)
-                if (actualSpeed <= 0):
-                    stoppedCounterTwo += 1
-                cloudlog.debug("STOP2")
-                longitudinalPlan.vCruise = float(0)
-                longitudinalPlan.aCruise = float(0)
-                longitudinalPlan.vStart = float(0)
-                longitudinalPlan.aStart = float(0)
-                longitudinalPlan.vTarget = float(0)
-                longitudinalPlan.aTarget = float(0)
-                longitudinalPlan.vTargetFuture = float(0)
-            else:
-                if (distanceToStopTwo > 7.5):
-                    stoppedCounterTwo = 0
 
         longitudinalPlan.processingDelay = (
             plan_send.logMonoTime / 1e9) - sm.rcv_time['radarState']
