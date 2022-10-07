@@ -2,6 +2,9 @@ from cereal import log
 from common.numpy_fast import clip, interp
 from selfdrive.controls.lib.pid import PIController
 
+import json
+import os
+
 LongCtrlState = log.ControlsState.LongControlState
 
 STOPPING_EGO_SPEED = 0.5
@@ -57,17 +60,50 @@ class LongControl():
                             (CP.longitudinalTuning.kiBP, CP.longitudinalTuning.kiV),
                             rate=RATE,
                             sat_limit=0.8,
-                            convert=compute_gb)
+                            convert=compute_gb,
+                            debug=True)
     self.v_pid = 0.0
     self.last_output_gb = 0.0
+    
+    # live tuning
+    self.live_tune = False
+    self.file = None
+    self.mpc_frame = 0
+    self.gb_copy = compute_gb
+
+    if os.path.exists("/data/tune.json"): 
+      self.live_tune = True
 
   def reset(self, v_pid):
     """Reset PID controller and change setpoint"""
     self.pid.reset()
     self.v_pid = v_pid
 
+  # borrowed from kegman, modded with JSON
+  def live_tuning(self):
+    self.mpc_frame += 1
+    if self.mpc_frame % 300 == 0:
+      if self.live_tune:
+        
+        self.file = open('/data/tune.json')
+        tuneFile = self.file.read()
+
+        if tuneFile is not None:
+          tuneJSON = json.loads(tuneFile)
+
+          kpbp = tuneJSON['kpBP']
+          kp = tuneJSON['kpV']
+          kibp = tuneJSON['kiBP']
+          ki = tuneJSON['kiV']
+          self.pid = PIController((kpbp, kp), (kibp, ki), rate=100.0, sat_limit=0.8, convert=self.gb_copy, debug=True)
+
+      self.mpc_frame = 0
+
   def update(self, active, CS, v_target, v_target_future, a_target, CP):
     """Update longitudinal control. This updates the state machine and runs a PID loop"""
+    # live tuning
+    self.live_tuning()
+
     # Actuation limits
     gas_max = interp(CS.vEgo, CP.gasMaxBP, CP.gasMaxV)
     brake_max = interp(CS.vEgo, CP.brakeMaxBP, CP.brakeMaxV)

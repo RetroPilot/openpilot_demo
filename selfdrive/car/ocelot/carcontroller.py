@@ -51,59 +51,33 @@ class CarController():
     # gas and brake
 
     apply_gas = clip(actuators.gas, 0., 1.)
+    apply_brake = actuators.brake * 4
 
-    if CS.CP.enableGasInterceptor:
-      # send only negative accel if interceptor is detected. otherwise, send the regular value
-      # +0.06 offset to reduce ABS pump usage when OP is engaged
-      apply_accel = 0.06 - actuators.brake
-    else:
-      apply_accel = actuators.gas - actuators.brake
-
-    apply_accel, self.accel_steady = accel_hysteresis(apply_accel, self.accel_steady, enabled)
-    apply_accel = clip(apply_accel * ACCEL_SCALE, ACCEL_MIN, ACCEL_MAX)
+    # apply_accel, self.accel_steady = accel_hysteresis(apply_accel, self.accel_steady, enabled)
+    # apply_accel = clip(apply_accel * ACCEL_SCALE, ACCEL_MIN, ACCEL_MAX)
 
     # steer torque
     new_steer = int(round(actuators.steer * SteerLimitParams.STEER_MAX))
-    apply_steer = apply_toyota_steer_torque_limits(new_steer, self.last_steer, CS.out.steeringTorqueEps, SteerLimitParams)
-    self.steer_rate_limited = new_steer != apply_steer
-
-    # # only cut torque when steer state is a known fault
-    # if CS.steer_state in [9, 25]:
-    #   self.last_fault_frame = frame
-
-    # Cut steering for 2s after fault
-    if not enabled: #or (frame - self.last_fault_frame < 200):
-      apply_steer = 0
-      apply_steer_req = 0
-    else:
-      apply_steer_req = 1
-
+    apply_steer = new_steer #apply_toyota_steer_torque_limits(new_steer, self.last_steer, CS.out.steeringTorqueEps, SteerLimitParams)
 
     # on entering standstill, send standstill request
     if CS.out.standstill and not self.last_standstill:
       self.standstill_req = True
 
-    self.last_steer = apply_steer
-    self.last_accel = apply_accel
+    # self.last_steer = apply_steer
+    # self.last_accel = apply_accel
     self.last_standstill = CS.out.standstill
 
     can_sends = []
 
-    #*** control msgs ***
-    #print("steer {0} {1} {2} {3}".format(apply_steer, min_lim, max_lim, CS.steer_torque_motor)
-
-    # toyota can trace shows this message at 42Hz, with counter adding alternatively 1 and 2;
-    # sending it at 100Hz seem to allow a higher rate limit, as the rate limit seems imposed
-    # on consecutive messages
-    
-    can_sends.append(create_steer_command(self.packer, apply_steer, apply_steer_req, frame))
+    can_sends.append(create_steer_command(self.packer, apply_steer, enabled, frame))
 
     if (frame % 2 == 0):
       # send exactly zero if apply_gas is zero. Interceptor will send the max between read value and apply_gas.
       # This prevents unexpected pedal range rescaling
       can_sends.append(create_gas_command(self.packer, apply_gas, frame//2))
     
-    can_sends.append(create_brake_cmd(self.packer, enabled, actuators.brake, frame))
+    can_sends.append(create_brake_cmd(self.packer, enabled, apply_brake, frame))
 
     # ui mesg is at 100Hz but we send asap if:
     # - there is something to display

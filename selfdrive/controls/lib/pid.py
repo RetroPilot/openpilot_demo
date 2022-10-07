@@ -11,7 +11,7 @@ def apply_deadzone(error, deadzone):
   return error
 
 class PIController():
-  def __init__(self, k_p, k_i, k_f=1., pos_limit=None, neg_limit=None, rate=100, sat_limit=0.8, convert=None):
+  def __init__(self, k_p, k_i, k_f=1., pos_limit=None, neg_limit=None, rate=100, sat_limit=0.8, convert=None, debug=False):
     self._k_p = k_p  # proportional gain
     self._k_i = k_i  # integral gain
     self.k_f = k_f  # feedforward gain
@@ -24,6 +24,8 @@ class PIController():
     self.i_rate = 1.0 / rate
     self.sat_limit = sat_limit
     self.convert = convert
+
+    self.debug = debug
 
     self.reset()
 
@@ -56,6 +58,11 @@ class PIController():
     self.control = 0
 
   def update(self, setpoint, measurement, speed=0.0, check_saturation=True, override=False, feedforward=0., deadzone=0., freeze_integrator=False):
+
+    ### DEBUG ###
+    if self.debug:
+      print("self.k_p: ", self._k_p[0], self._k_p[1], "self.k_i: ", self._k_i[0], self._k_i[1])
+
     self.speed = speed
 
     error = float(apply_deadzone(setpoint - measurement, deadzone))

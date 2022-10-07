@@ -37,7 +37,7 @@ class CarInterface(CarInterfaceBase):
     ret.steerRatio = 21
     tire_stiffness_factor = 0.444
     ret.mass = 810 + STD_CARGO_KG
-    ret.lateralTuning.pid.kpV, ret.lateralTuning.pid.kiV = [[0.1], [0.05]]
+    ret.lateralTuning.pid.kpV, ret.lateralTuning.pid.kiV = [[0.15], [0.1]]
     ret.lateralTuning.pid.kf = 0.00006   # full torque for 20 deg at 80mph means 0.00007818594
 
 
@@ -71,7 +71,7 @@ class CarInterface(CarInterfaceBase):
     ret.gasMaxV = [0.2, 0.5, 0.7]
     ret.longitudinalTuning.kpV = [0.5, 0.5, 0.2]
     ret.longitudinalTuning.kiV = [0.15, 0.15]
-
+   
     return ret
 
   # returns a car.CarState
@@ -114,3 +114,4 @@ class CarInterface(CarInterfaceBase):
 
     self.frame += 1
     return can_sends
+
