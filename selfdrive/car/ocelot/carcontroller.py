@@ -1,8 +1,8 @@
 from cereal import car
 from common.numpy_fast import clip
-from selfdrive.car import apply_toyota_steer_torque_limits
+from selfdrive.car import make_can_msg
 from selfdrive.car.ocelot.ocelotcan import create_steer_command, create_gas_command, create_brake_cmd
-from selfdrive.car.ocelot.values import SteerLimitParams
+from selfdrive.car.ocelot.values import SteerLimitParams, TSS2_RADAR_INIT
 from opendbc.can.packer import CANPacker
 
 VisualAlert = car.CarControl.HUDControl.VisualAlert
@@ -51,7 +51,7 @@ class CarController():
     # gas and brake
 
     apply_gas = clip(actuators.gas, 0., 1.)
-    apply_brake = actuators.brake * 4
+    apply_brake = actuators.brake * 6
 
     # apply_accel, self.accel_steady = accel_hysteresis(apply_accel, self.accel_steady, enabled)
     # apply_accel = clip(apply_accel * ACCEL_SCALE, ACCEL_MIN, ACCEL_MAX)
@@ -89,11 +89,11 @@ class CarController():
        (not (fcw_alert or steer_alert) and self.alert_active):
       self.alert_active = not self.alert_active
 
-    # #*** static msgs ***
+    #*** TSS2 Radar Init  ***
 
-    # for (addr, ecu, cars, bus, fr_step, vl) in STATIC_MSGS:
-    #   if frame % fr_step == 0 and ecu in self.fake_ecus and CS.CP.carFingerprint in cars:
-    #     can_sends.append(make_can_msg(addr, vl, bus))
+    for (addr, bus, fr_step, vl) in TSS2_RADAR_INIT:
+      if frame % fr_step == 0:
+        can_sends.append(make_can_msg(addr, vl, bus))
 
     return can_sends
 
