@@ -10,6 +10,8 @@ from selfdrive.controls.lib.lane_planner import LanePlanner, TRAJECTORY_SIZE
 from selfdrive.config import Conversions as CV
 import cereal.messaging as messaging
 from cereal import log
+from selfdrive.controls.lib.gps_waypoints_lat import gpsPlannerLat
+
 
 LaneChangeState = log.LateralPlan.LaneChangeState
 LaneChangeDirection = log.LateralPlan.LaneChangeDirection
@@ -46,6 +48,9 @@ DESIRES = {
 
 class LateralPlanner():
   def __init__(self, CP, use_lanelines=True, wide_camera=False):
+
+    self.gps_planner_lat = gpsPlannerLat()
+
     self.use_lanelines = use_lanelines
     self.LP = LanePlanner(wide_camera)
 
@@ -84,6 +89,7 @@ class LateralPlanner():
     self.safe_desired_curvature_rate = 0.0
 
   def update(self, sm, CP):
+
     v_ego = sm['carState'].vEgo
     active = sm['controlsState'].active
     measured_curvature = sm['controlsState'].curvature
@@ -227,6 +233,9 @@ class LateralPlanner():
       self.solution_invalid_cnt = 0
 
   def publish(self, sm, pm):
+    RETROPILOTSTEER = self.gps_planner_lat.update(sm)
+
+    #RETROPILOTSTEER = None
     plan_solution_valid = self.solution_invalid_cnt < 2
     plan_send = messaging.new_message('lateralPlan')
     plan_send.valid = sm.all_alive_and_valid(service_list=['carState', 'controlsState', 'modelV2'])
@@ -236,10 +245,31 @@ class LateralPlanner():
     plan_send.lateralPlan.rProb = float(self.LP.rll_prob)
     plan_send.lateralPlan.dProb = float(self.LP.d_prob)
 
-    plan_send.lateralPlan.rawCurvature = float(self.desired_curvature)
-    plan_send.lateralPlan.rawCurvatureRate = float(self.desired_curvature_rate)
-    plan_send.lateralPlan.curvature = float(self.safe_desired_curvature)
-    plan_send.lateralPlan.curvatureRate = float(self.safe_desired_curvature_rate)
+
+    
+
+    
+    if (RETROPILOTSTEER):
+      v_ego = sm['carState'].vEgo
+      max_curvature_rate = interp(v_ego, MAX_CURVATURE_RATE_SPEEDS, MAX_CURVATURE_RATES)
+
+      self.safe_desired_curvature_rate = clip(RETROPILOTSTEER,
+                                            -max_curvature_rate,
+                                            max_curvature_rate)
+      self.safe_desired_curvature = clip(RETROPILOTSTEER,
+                                       self.safe_desired_curvature - max_curvature_rate/DT_MDL,
+                                       self.safe_desired_curvature + max_curvature_rate/DT_MDL)
+                                       
+      plan_send.lateralPlan.rawCurvature = float(RETROPILOTSTEER)
+      plan_send.lateralPlan.rawCurvatureRate = float(self.desired_curvature_rate)
+      plan_send.lateralPlan.curvature = float(RETROPILOTSTEER)
+      plan_send.lateralPlan.curvatureRate = float(self.safe_desired_curvature_rate)
+    else:
+      plan_send.lateralPlan.rawCurvature = float(self.desired_curvature)
+      plan_send.lateralPlan.rawCurvatureRate = float(self.desired_curvature_rate)
+      plan_send.lateralPlan.curvature = float(self.safe_desired_curvature)
+      plan_send.lateralPlan.curvatureRate = float(self.safe_desired_curvature_rate)
+
 
     plan_send.lateralPlan.mpcSolutionValid = bool(plan_solution_valid)
 

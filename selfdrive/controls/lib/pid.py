@@ -60,8 +60,8 @@ class PIController():
   def update(self, setpoint, measurement, speed=0.0, check_saturation=True, override=False, feedforward=0., deadzone=0., freeze_integrator=False):
 
     ### DEBUG ###
-    if self.debug:
-      print("self.k_p: ", self._k_p[0], self._k_p[1], "self.k_i: ", self._k_i[0], self._k_i[1])
+    # if self.debug:
+    #print("self.k_p: ", self._k_p[0], self._k_p[1], "self.k_i: ", self._k_i[0], self._k_i[1])
 
     self.speed = speed
 

@@ -14,8 +14,6 @@ from selfdrive.controls.lib.fcw import FCWChecker
 from selfdrive.controls.lib.long_mpc import LongitudinalMpc
 from selfdrive.controls.lib.drive_helpers import V_CRUISE_MAX
 
-from selfdrive.controls.lib.gps_waypoints import gpsPlanner
-
 LON_MPC_STEP = 0.2  # first step is 0.2s
 AWARENESS_DECEL = -0.2     # car smoothly decel at .2m/s^2 when user is distracted
 
@@ -85,8 +83,6 @@ class Planner():
     self.params = Params()
     self.first_loop = True
 
-    #self.gps_planner = gpsPlanner(CP)
-
   def choose_solution(self, v_cruise_setpoint, enabled):
     if enabled:
       solutions = {'cruise': self.v_cruise}
@@ -131,8 +127,6 @@ class Planner():
 
     self.v_acc_start = self.v_acc_next
     self.a_acc_start = self.a_acc_next
-
-    #self.gps_planner.update(CP, sm)
 
     # Calculate speed for normal cruise control
     if enabled and not self.first_loop and not sm['carState'].gasPressed:

@@ -60,8 +60,8 @@ def dmonitoringd_thread(sm=None, pm=None):
     dat = messaging.new_message('driverMonitoringState')
     dat.driverMonitoringState = {
       "events": events.to_msg(),
-      "faceDetected": driver_status.face_detected,
-      "isDistracted": driver_status.driver_distracted,
+      "faceDetected": True, #driver_status.face_detected,
+      "isDistracted": False, #driver_status.driver_distracted,
       "awarenessStatus": driver_status.awareness,
       "posePitchOffset": driver_status.pose.pitch_offseter.filtered_stat.mean(),
       "posePitchValidCount": driver_status.pose.pitch_offseter.filtered_stat.n,

@@ -22,6 +22,8 @@ class CarState(CarStateBase):
     self.buttonStates = BUTTON_STATES.copy()
     self.leverPressOld = False
 
+    self.lc_counter = 0
+
   def update(self, cp, cp_body):
     ret = car.CarState.new_message()
 
@@ -70,12 +72,19 @@ class CarState(CarStateBase):
     # TODO: handle steering actuator
     ret.steeringTorqueEps = raw_torque * 10 #cp.vl["STEERING_STATUS"]['STEER_TORQUE_EPS']
 
-    ret.steeringPressed =  (ret.leftBlinker or ret.rightBlinker) and not self.leverPressOld #abs(ret.steeringTorque) > 
-    self.leverPressOld = (ret.leftBlinker or ret.rightBlinker)
+    # TODO: less nasty
+    if (ret.leftBlinker or ret.rightBlinker):
+      if self.lc_counter >= 300:
+        ret.steeringPressed = True
+        self.lc_counter = 0
+      self.lc_counter+=1
+    else:
+      self.lc_counter = 0
+      ret.steeringPressed = False
 
     ret.steerWarning = False #cp.vl["STEERING_STATUS"]['STEERING_OK'] != 0
 
-    main_on = True #bool(cp_body.vl["CRUISE_BUTTONS"]['MAIN_ON'])
+    main_on = True #not bool(cp_body.vl["CRUISE_BUTTONS"]['MAIN_ON'])
 
     ret.cruiseState.available = main_on
     ret.cruiseState.standstill = False
@@ -94,14 +103,14 @@ class CarState(CarStateBase):
         if self.enabled:
             self.setSpeed = (int(round((ret.vEgo * CV.MS_TO_MPH)/5)) * 5)
             if ret.standstill:
-              self.setSpeed = 10
+              self.setSpeed = 1
 
     #increase or decrease speed in 5mph increments
     if cp_body.vl["CRUISE_BUTTONS"]['SET_PLUS'] and not self.oldSpeedUp:
-      self.setSpeed = self.setSpeed + 5
+      self.setSpeed = self.setSpeed + 1
 
     if cp_body.vl["CRUISE_BUTTONS"]['SET_MINUS'] and not self.oldSpeedDn:
-      self.setSpeed = self.setSpeed - 5
+      self.setSpeed = self.setSpeed - 1
 
     ret.cruiseState.speed = self.setSpeed * CV.MPH_TO_MS
     ret.cruiseState.enabled = self.enabled

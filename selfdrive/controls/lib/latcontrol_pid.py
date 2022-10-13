@@ -3,7 +3,7 @@ import math
 from selfdrive.controls.lib.pid import PIController
 from selfdrive.controls.lib.drive_helpers import get_steer_max
 from cereal import log
-
+import json
 
 class LatControlPID():
   def __init__(self, CP):
@@ -12,10 +12,40 @@ class LatControlPID():
                             k_f=CP.lateralTuning.pid.kf, pos_limit=1.0, neg_limit=-1.0,
                             sat_limit=CP.steerLimitTimer)
 
+    self.mpc_frame = 0
+
   def reset(self):
     self.pid.reset()
 
+
+    # borrowed from kegman, modded with JSON
+  def live_tuning(self):
+    self.mpc_frame += 1
+    if self.mpc_frame % 300 == 0:
+      if self.live_tune:
+        
+        self.file = open('/data/tune.json')
+        tuneFile = self.file.read()
+
+        if tuneFile is not None:
+          tuneJSON = json.loads(tuneFile)
+
+          kpbp = tuneJSON['La_kpBP']
+          kp = tuneJSON['La_kpV']
+          kibp = tuneJSON['La_kiBP']
+          ki = tuneJSON['La_kiV']
+          kf = tuneJSON['La_kf']
+          pos_lim = tuneJSON['La_pos_limit'] #1.0
+          neg_limit = tuneJSON['La_neg_limit'] #-1.0
+          self.pid = PIController((kpbp, kp),
+                            (kibp, ki),
+                            k_f=kf, pos_limit=pos_lim, neg_limit=neg_limit,
+                            sat_limit=CP.steerLimitTimer)
+      self.mpc_frame = 0
+
+
   def update(self, active, CS, CP, VM, params, lat_plan):
+
     pid_log = log.ControlsState.LateralPIDState.new_message()
     pid_log.steeringAngleDeg = float(CS.steeringAngleDeg)
     pid_log.steeringRateDeg = float(CS.steeringRateDeg)

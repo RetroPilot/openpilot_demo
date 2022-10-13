@@ -507,6 +507,7 @@ class Controls:
     steer_angle_without_offset = math.radians(CS.steeringAngleDeg - params.angleOffsetAverageDeg)
     curvature = -self.VM.calc_curvature(steer_angle_without_offset, CS.vEgo)
     angle_steers_des = math.degrees(self.VM.get_steer_from_curvature(-lat_plan.curvature, CS.vEgo))
+   # print("curvature ", curvature)
     angle_steers_des += params.angleOffsetDeg
 
     # controlsState

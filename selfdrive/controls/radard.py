@@ -14,6 +14,7 @@ from selfdrive.controls.lib.radar_helpers import Cluster, Track
 from selfdrive.swaglog import cloudlog
 from selfdrive.hardware import TICI
 
+from selfdrive.controls.lib.gps_waypoints import gpsPlanner
 
 class KalmanParams():
   def __init__(self, dt):
@@ -29,6 +30,7 @@ class KalmanParams():
     K0 = [0.12288, 0.14557, 0.16523, 0.18282, 0.19887, 0.21372, 0.22761, 0.24069, 0.2531, 0.26491]
     K1 = [0.29666, 0.29331, 0.29043, 0.28787, 0.28555, 0.28342, 0.28144, 0.27958, 0.27783, 0.27617]
     self.K = [[interp(dt, dts, K0)], [interp(dt, dts, K1)]]
+
 
 
 def laplacian_cdf(x, mu, b):
@@ -98,8 +100,12 @@ class RadarD():
 
     self.ready = False
 
+    self.gps_planner = gpsPlanner()
   def update(self, sm, rr, enable_lead):
     self.current_time = 1e-9*max(sm.logMonoTime.values())
+
+    planner = self.gps_planner.update(sm)
+
 
     if sm.updated['carState']:
       self.v_ego = sm['carState'].vEgo
@@ -167,8 +173,15 @@ class RadarD():
 
     if enable_lead:
       if len(sm['modelV2'].leads) > 1:
+        #print(">1")
+        
         radarState.leadOne = get_lead(self.v_ego, self.ready, clusters, sm['modelV2'].leads[0], low_speed_override=True)
         radarState.leadTwo = get_lead(self.v_ego, self.ready, clusters, sm['modelV2'].leads[1], low_speed_override=False)
+
+        #radarState.leadOne = 
+    if (planner != None):
+      radarState.leadTwo = {'dRel': planner, 'yRel': -0.7599999904632568, 'vRel': 0.0, 'vLead': -1.064276618223392e-11, 'vLeadK': 1.3886331114062307e-07, 'aLeadK': 1.0457257474360904e-06, 'status': True, 'fcw': False, 'modelProb': 0.0, 'radar': True, 'aLeadTau': 1.5}
+
     return dat
 
 
@@ -189,7 +202,7 @@ def radard_thread(sm=None, pm=None, can_sock=None):
   if can_sock is None:
     can_sock = messaging.sub_sock('can')
   if sm is None:
-    sm = messaging.SubMaster(['modelV2', 'carState'], ignore_avg_freq=['modelV2', 'carState'])  # Can't check average frequency, since radar determines timing
+    sm = messaging.SubMaster(['modelV2', 'carState', 'gpsLocationExternal'], ignore_avg_freq=['modelV2', 'carState', 'gpsLocationExternal'])  # Can't check average frequency, since radar determines timing
   if pm is None:
     pm = messaging.PubMaster(['radarState', 'liveTracks'])
 
@@ -237,3 +250,4 @@ def main(sm=None, pm=None, can_sock=None):
 
 if __name__ == "__main__":
   main()
+

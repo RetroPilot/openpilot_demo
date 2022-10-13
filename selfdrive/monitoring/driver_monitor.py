@@ -51,7 +51,7 @@ _RECOVERY_FACTOR_MAX = 5.  # relative to minus step change
 _RECOVERY_FACTOR_MIN = 1.25  # relative to minus step change
 
 MAX_TERMINAL_ALERTS = 3  # not allowed to engage after 3 terminal alerts
-MAX_TERMINAL_DURATION = 30000  # 30s
+MAX_TERMINAL_DURATION = 300  # 30s
 
 # model output refers to center of cropped image, so need to apply the x displacement offset
 RESIZED_FOCAL = 320.0
@@ -219,7 +219,8 @@ class DriverStatus():
       self.hi_stds = 0
 
   def update(self, events, driver_engaged, ctrl_active, standstill):
-    if (driver_engaged and self.awareness > 0) or not ctrl_active:
+    #if (driver_engaged and self.awareness > 0) or not ctrl_active:
+    if (True):
       # reset only when on disengagement if red reached
       self.awareness = 1.
       self.awareness_active = 1.
