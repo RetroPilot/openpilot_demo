@@ -10,7 +10,7 @@ EventName = car.CarEvent.EventName
 
 class CarInterface(CarInterfaceBase):
   @staticmethod
-  def compute_gb(accel, speed):
+  def come_gb(accel, speed):
     return float(accel) / 3.0
 
   @staticmethod
@@ -26,7 +26,7 @@ class CarInterface(CarInterfaceBase):
     ret.carName = "ocelot"
     ret.safetyModel = car.CarParams.SafetyModel.allOutput
 
-    ret.steerActuatorDelay = 0.12  # Default delay, Prius has larger delay
+    ret.steerActuatorDelay = 0. #0.12  # Default delay, Prius has larger delay
     ret.steerLimitTimer = 0.4
 
 
