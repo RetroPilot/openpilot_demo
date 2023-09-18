@@ -195,8 +195,8 @@ class Controls:
     if cal_status != Calibration.CALIBRATED:
       if cal_status == Calibration.UNCALIBRATED:
         self.events.add(EventName.calibrationIncomplete)
-      else:
-        self.events.add(EventName.calibrationInvalid)
+      # else:
+      #   self.events.add(EventName.calibrationInvalid)
 
     # Handle lane change
     if self.sm['lateralPlan'].laneChangeState == LaneChangeState.preLaneChange:
