@@ -10,7 +10,7 @@ EventName = car.CarEvent.EventName
 
 class CarInterface(CarInterfaceBase):
   @staticmethod
-  def come_gb(accel, speed):
+  def compute_gb(accel, speed):
     return float(accel) / 3.0
 
   @staticmethod

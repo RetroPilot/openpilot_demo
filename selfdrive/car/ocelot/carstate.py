@@ -6,6 +6,7 @@ from opendbc.can.parser import CANParser
 from selfdrive.config import Conversions as CV
 from selfdrive.car.ocelot.values import DBC, BUTTON_STATES
 
+GearShifter = car.CarState.GearShifter
 
 class CarState(CarStateBase):
   def __init__(self, CP):
@@ -35,7 +36,7 @@ class CarState(CarStateBase):
     ret.wheelSpeeds.rl = 60 * CV.KPH_TO_MS
     ret.wheelSpeeds.rr = 60 * CV.KPH_TO_MS
     ret.brakeLights = False
-    ret.gearShifter = 'D'
+    ret.gearShifter = GearShifter.drive
 
     # iBooster data
     ret.brakePressed = False
@@ -67,7 +68,7 @@ class CarState(CarStateBase):
     ret.steeringPressed = False #abs(ret.steeringTorque) > STEER_THRESHOLD
     ret.steerWarning = False #cp.vl["STEERING_STATUS"]['STEERING_OK'] != 0
 
-    main_on = bool(cp.vl["CRUISE_BUTTONS"]['MAIN_ON'])
+    main_on = bool(cp.vl["CRUISE_STATE"]['ENABLE'])
 
     ret.cruiseState.available = main_on
     ret.cruiseState.standstill = False
