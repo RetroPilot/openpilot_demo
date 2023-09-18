@@ -220,8 +220,8 @@ class Controls:
     if safety_mismatch or self.mismatch_counter >= 200:
       self.events.add(EventName.controlsMismatch)
 
-    if not self.sm['liveParameters'].valid:
-      self.events.add(EventName.vehicleModelInvalid)
+    # if not self.sm['liveParameters'].valid:
+    #   self.events.add(EventName.vehicleModelInvalid)
 
     if len(self.sm['radarState'].radarErrors):
       self.events.add(EventName.radarFault)
