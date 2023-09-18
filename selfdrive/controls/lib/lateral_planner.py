@@ -233,9 +233,10 @@ class LateralPlanner():
       self.solution_invalid_cnt = 0
 
   def publish(self, sm, pm):
-    RETROPILOTSTEER = self.gps_planner_lat.update(sm)
+    #RETROPILOTSTEER = self.gps_planner_lat.update(sm)
 
-    #RETROPILOTSTEER = None
+    RETROPILOTSTEER = None
+
     plan_solution_valid = self.solution_invalid_cnt < 2
     plan_send = messaging.new_message('lateralPlan')
     plan_send.valid = sm.all_alive_and_valid(service_list=['carState', 'controlsState', 'modelV2'])

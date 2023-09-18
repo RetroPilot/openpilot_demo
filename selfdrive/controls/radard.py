@@ -104,7 +104,8 @@ class RadarD():
   def update(self, sm, rr, enable_lead):
     self.current_time = 1e-9*max(sm.logMonoTime.values())
 
-    planner = self.gps_planner.update(sm)
+    #planner = self.gps_planner.update(sm)
+    planner = None
 
 
     if sm.updated['carState']:
@@ -174,13 +175,15 @@ class RadarD():
     if enable_lead:
       if len(sm['modelV2'].leads) > 1:
         #print(">1")
-        
+
+        #vRel is speed relative to you
         radarState.leadOne = get_lead(self.v_ego, self.ready, clusters, sm['modelV2'].leads[0], low_speed_override=True)
         radarState.leadTwo = get_lead(self.v_ego, self.ready, clusters, sm['modelV2'].leads[1], low_speed_override=False)
 
         #radarState.leadOne = 
     if (planner != None):
       radarState.leadTwo = {'dRel': planner, 'yRel': -0.7599999904632568, 'vRel': 0.0, 'vLead': -1.064276618223392e-11, 'vLeadK': 1.3886331114062307e-07, 'aLeadK': 1.0457257474360904e-06, 'status': True, 'fcw': False, 'modelProb': 0.0, 'radar': True, 'aLeadTau': 1.5}
+
 
     return dat
 

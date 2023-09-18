@@ -169,7 +169,7 @@ class gpsPlannerLat():
         return distance
 
     def update(self, sm):
-
+        return True;
         gpsLocationExternal = sm["gpsLocationExternal"]
         carState = sm["carState"]
         self.lat = gpsLocationExternal.latitude

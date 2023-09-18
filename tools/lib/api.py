@@ -1,7 +1,7 @@
 import os
 import requests
 from tools.lib.auth_config import clear_token
-API_HOST = os.getenv('API_HOST', 'https://api.commadotai.com')
+API_HOST = os.getenv('API_HOST', 'https://l34sn2v9eg.execute-api.us-east-1.amazonaws.com')
 
 class CommaApi():
   def __init__(self, token=None):
