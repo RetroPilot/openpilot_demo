@@ -51,8 +51,8 @@ class CarState(CarStateBase):
 
     # Toyota SAS
     # Do we need an angle sensor for demo?
-    ret.steeringAngleDeg = 0 # cp_body.vl["STEER_ANGLE_SENSOR"]['STEER_ANGLE']
-    ret.steeringRateDeg = 0 # cp_body.vl["VSC"]['STEER_RATE']
+    ret.steeringAngleDeg = cp.vl["TOYOTA_STEERING_ANGLE_SENSOR1"]['TOYOTA_STEER_ANGLE'] + cp.vl["TOYOTA_STEERING_ANGLE_SENSOR1"]['TOYOTA_STEER_FRACTION']
+    ret.steeringRateDeg = cp.vl["TOYOTA_STEERING_ANGLE_SENSOR1"]['TOYOTA_STEER_RATE']
 
 
     # Steering information from smart standin ECU
