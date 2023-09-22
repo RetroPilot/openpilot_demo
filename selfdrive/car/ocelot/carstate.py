@@ -21,6 +21,8 @@ class CarState(CarStateBase):
     self.oldSpeedDn = False
     self.setSpeed = 10
     self.buttonStates = BUTTON_STATES.copy()
+    self.angle_last = 0
+    self.frame = 0
 
   def update(self, cp, cp_body):
     ret = car.CarState.new_message()
@@ -51,9 +53,12 @@ class CarState(CarStateBase):
 
     # Toyota SAS
     # Do we need an angle sensor for demo?
-    ret.steeringAngleDeg = cp.vl["TOYOTA_STEERING_ANGLE_SENSOR1"]['TOYOTA_STEER_ANGLE'] + cp.vl["TOYOTA_STEERING_ANGLE_SENSOR1"]['TOYOTA_STEER_FRACTION']
-    ret.steeringRateDeg = cp.vl["TOYOTA_STEERING_ANGLE_SENSOR1"]['TOYOTA_STEER_RATE']
-
+    ret.steeringAngleDeg = -(cp.vl["TOYOTA_STEERING_ANGLE_SENSOR1"]['TOYOTA_STEER_ANGLE'] + cp.vl["TOYOTA_STEERING_ANGLE_SENSOR1"]['TOYOTA_STEER_FRACTION'])
+    ret.steeringRateDeg = (ret.steeringAngleDeg - self.angle_last) * 5
+    self.frame += 1
+    if self.frame == 5:
+      self.angle_last = cp.vl["TOYOTA_STEERING_ANGLE_SENSOR1"]['TOYOTA_STEER_ANGLE'] + cp.vl["TOYOTA_STEERING_ANGLE_SENSOR1"]['TOYOTA_STEER_FRACTION']
+      self.frame = 0
 
     # Steering information from smart standin ECU
     raw_torque = 0
@@ -122,13 +127,17 @@ class CarState(CarStateBase):
       # ("PED_GAS2", "PEDAL_GAS_SENSOR", 0),
       ("ENABLE", "CRUISE_STATE", 0),
       ("SPEED", "CRUISE_STATE", 0),
+      ("TOYOTA_STEER_ANGLE", "TOYOTA_STEERING_ANGLE_SENSOR1", 0),
+      ("TOYOTA_STEER_FRACTION", "TOYOTA_STEERING_ANGLE_SENSOR1", 0),
+      ("TOYOTA_STEER_RATE", "TOYOTA_STEERING_ANGLE_SENSOR1", 0),
     ]
 
     checks = [
       #("OCELOT_BRAKE_STATUS", 80),
       #("PEDAL_GAS_SENSOR", 50),
       ("OCELOT_STEERING_STATUS", 80),
-      ("CRUISE_STATE", 80)
+      ("CRUISE_STATE", 80),
+      ("TOYOTA_STEERING_ANGLE_SENSOR1", 80),
     ]
 
     return CANParser(DBC[CP.carFingerprint]['pt'], signals, checks, 2)

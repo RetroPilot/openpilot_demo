@@ -7,8 +7,8 @@ Ecu = car.CarParams.Ecu
 # Steer torque limits
 class SteerLimitParams:
   STEER_MAX = 1024 #1500
-  STEER_DELTA_UP = 128 #25       # 1.5s time to peak torque
-  STEER_DELTA_DOWN = 128 #25     # always lower than 45 otherwise the Rav4 faults (Prius seems ok with 50)
+  STEER_DELTA_UP = 64 #25       # 1.5s time to peak torque
+  STEER_DELTA_DOWN = 64 #25     # always lower than 45 otherwise the Rav4 faults (Prius seems ok with 50)
   STEER_ERROR_MAX = 1024 #1500     # max delta between torque cmd and torque motor
 
 class CAR:
