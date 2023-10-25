@@ -4,12 +4,18 @@ from selfdrive.car import dbc_dict
 from cereal import car
 Ecu = car.CarParams.Ecu
 
-# Steer torque limits
-class SteerLimitParams:
-  STEER_MAX = 1024 #1500
-  STEER_DELTA_UP = 64 #25       # 1.5s time to peak torque
-  STEER_DELTA_DOWN = 64 #25     # always lower than 45 otherwise the Rav4 faults (Prius seems ok with 50)
-  STEER_ERROR_MAX = 1024 #1500     # max delta between torque cmd and torque motor
+# # Steer torque limits
+# class SteerLimitParams:
+#   STEER_MAX = 1024 #1500
+#   STEER_DELTA_UP = 64 #25       # 1.5s time to peak torque
+#   STEER_DELTA_DOWN = 64 #25     # always lower than 45 otherwise the Rav4 faults (Prius seems ok with 50)
+#   STEER_ERROR_MAX = 1024 #1500     # max delta between torque cmd and torque motor
+
+class CarControllerParams:
+  STEER_MAX = 1500
+  STEER_DELTA_UP = 5    #10    # 1.5s time to peak torque
+  STEER_DELTA_DOWN = 10 #25    # always lower than 45 otherwise the Rav4 faults (Prius seems ok with 50)
+  STEER_ERROR_MAX = 1500     # max delta between torque cmd and torque motor
 
 class CAR:
   SMART_ROADSTER_COUPE = "SMART ROADSTER COUPE 2003-2006"
@@ -23,6 +29,19 @@ BUTTON_STATES = {
   "resumeCruise": False,
   "gapAdjustCruise": False
 }
+
+# addr: (ecu, cars, bus, 1/freq*100, vl)
+STATIC_MSGS = [
+  # (0x128, Ecu.dsu, (CAR.ALBATROSS), 1,   3, b'\xf4\x01\x90\x83\x00\x37'),
+  # (0x141, Ecu.dsu, (CAR.ALBATROSS), 1,   2, b'\x00\x00\x00\x46'),
+  # (0x160, Ecu.dsu, (CAR.ALBATROSS), 1,   7, b'\x00\x00\x08\x12\x01\x31\x9c\x51'),
+  # (0x161, Ecu.dsu, (CAR.ALBATROSS), 1,   7, b'\x00\x1e\x00\x00\x00\x80\x07'),
+  (0x283, Ecu.dsu, (CAR.ALBATROSS), 0,   3, b'\x00\x00\x00\x00\x00\x00\x8c'),
+  (0x344, Ecu.dsu, (CAR.ALBATROSS), 0,   5, b'\x00\x00\x01\x00\x00\x00\x00\x50'),
+  (0x365, Ecu.dsu, (CAR.ALBATROSS), 0,  20, b'\x00\x00\x00\x80\xfc\x00\x08'),
+  (0x366, Ecu.dsu, (CAR.ALBATROSS), 0,  20, b'\x00\x72\x07\xff\x09\xfe\x00'),
+  (0x4CB, Ecu.dsu, (CAR.ALBATROSS), 0, 100, b'\x0c\x00\x00\x00\x00\x00\x00\x00'),
+]
 
 FINGERPRINTS = {
   CAR.SMART_ROADSTER_COUPE: [{

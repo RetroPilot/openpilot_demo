@@ -1,8 +1,8 @@
 from cereal import car
 from common.numpy_fast import clip
-from selfdrive.car import apply_toyota_steer_torque_limits
-from selfdrive.car.ocelot.ocelotcan import create_steer_command, create_gas_command, create_brake_cmd
-from selfdrive.car.ocelot.values import SteerLimitParams
+from selfdrive.car import apply_toyota_steer_torque_limits, make_can_msg
+from selfdrive.car.ocelot.ocelotcan import create_toyota_steer_command, create_steer_command, create_gas_command, create_brake_cmd
+from selfdrive.car.ocelot.values import CarControllerParams, STATIC_MSGS
 from opendbc.can.packer import CANPacker
 
 VisualAlert = car.CarControl.HUDControl.VisualAlert
@@ -63,8 +63,8 @@ class CarController():
     apply_accel = clip(apply_accel * ACCEL_SCALE, ACCEL_MIN, ACCEL_MAX)
 
     # steer torque
-    new_steer = int(round(actuators.steer * SteerLimitParams.STEER_MAX))
-    apply_steer = apply_toyota_steer_torque_limits(new_steer, self.last_steer, CS.out.steeringTorqueEps, SteerLimitParams)
+    new_steer = int(round(actuators.steer * CarControllerParams.STEER_MAX))
+    apply_steer = apply_toyota_steer_torque_limits(new_steer, self.last_steer, CS.out.steeringTorqueEps, CarControllerParams)
     self.steer_rate_limited = new_steer != apply_steer
 
     # # only cut torque when steer state is a known fault
@@ -96,7 +96,8 @@ class CarController():
     # sending it at 100Hz seem to allow a higher rate limit, as the rate limit seems imposed
     # on consecutive messages
     
-    can_sends.append(create_steer_command(self.packer, apply_steer, apply_steer_req, frame))
+    # can_sends.append(create_steer_command(self.packer, apply_steer, apply_steer_req, frame))
+    can_sends.append(create_toyota_steer_command(self.packer, apply_steer, apply_steer_req, frame))
 
     if (frame % 2 == 0):
       # send exactly zero if apply_gas is zero. Interceptor will send the max between read value and apply_gas.
@@ -117,8 +118,8 @@ class CarController():
 
     # #*** static msgs ***
 
-    # for (addr, ecu, cars, bus, fr_step, vl) in STATIC_MSGS:
-    #   if frame % fr_step == 0 and ecu in self.fake_ecus and CS.CP.carFingerprint in cars:
-    #     can_sends.append(make_can_msg(addr, vl, bus))
+    for (addr, ecu, cars, bus, fr_step, vl) in STATIC_MSGS:
+      if frame % fr_step == 0 and CS.CP.carFingerprint in cars:
+        can_sends.append(make_can_msg(addr, vl, bus))
 
     return can_sends
