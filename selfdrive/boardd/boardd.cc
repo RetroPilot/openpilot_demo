@@ -35,6 +35,7 @@
 #define CUTOFF_IL 200
 #define SATURATE_IL 1600
 #define NIBBLE_TO_HEX(n) ((n) < 10 ? (n) + '0' : ((n) - 10) + 'a')
+#define UNUSED(x) (void)x
 
 Panda * panda = nullptr;
 std::atomic<bool> safety_setter_thread_running(false);
@@ -159,6 +160,8 @@ bool usb_connect() {
   if (!connected_once) {
     tmp_panda->set_usb_power_mode(cereal::PandaState::UsbPowerMode::CDP);
   }
+#else
+  UNUSED(connected_once);
 #endif
 
   if (tmp_panda->has_rtc){

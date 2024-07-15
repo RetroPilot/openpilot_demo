@@ -14,6 +14,8 @@
 
 #define N           ACADO_N   /* Number of intervals in the horizon. */
 
+#define UNUSED(x) (void)x
+
 ACADOvariables acadoVariables;
 ACADOworkspace acadoWorkspace;
 
@@ -85,6 +87,7 @@ void init_with_simulation(double v_ego, double x_l_0, double v_l_0, double a_l_0
 
   double dt = 0.2;
   double t = 0.;
+  UNUSED(t);
 
   for (i = 0; i < N + 1; ++i){
     if (i > 4){

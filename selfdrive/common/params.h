@@ -42,7 +42,7 @@ public:
   inline std::string get(const std::string &key, bool block = false) {
     return get(key.c_str(), block);
   }
-
+/*
   template <class T>
   std::optional<T> get(const char *key, bool block = false) {
     std::istringstream iss(get(key, block));
@@ -50,7 +50,7 @@ public:
     iss >> value;
     return iss.fail() ? std::nullopt : std::optional(value);
   }
-
+*/
   inline bool getBool(const std::string &key) {
     return getBool(key.c_str());
   }

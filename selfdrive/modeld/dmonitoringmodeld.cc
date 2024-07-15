@@ -8,11 +8,14 @@
 #include "selfdrive/common/util.h"
 #include "selfdrive/modeld/models/dmonitoring.h"
 
+#define UNUSED(x) (void)x
+
 ExitHandler do_exit;
 
 void run_model(DMonitoringModelState &model, VisionIpcClient &vipc_client) {
   PubMaster pm({"driverState"});
   double last = 0;
+  UNUSED(last);
 
   while (!do_exit) {
     VisionIpcBufExtra extra = {};

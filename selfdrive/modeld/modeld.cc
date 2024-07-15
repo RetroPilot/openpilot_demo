@@ -20,6 +20,8 @@ bool live_calib_seen;
 mat3 cur_transform;
 std::mutex transform_lock;
 
+#define UNUSED(x) (void)x
+
 void calibration_thread(bool wide_camera) {
   set_thread_name("calibration");
   set_realtime_priority(50);
@@ -79,6 +81,7 @@ void run_model(ModelState &model, VisionIpcClient &vipc_client) {
 
   uint32_t frame_id = 0, last_vipc_frame_id = 0;
   double last = 0;
+  UNUSED(last);
   int desire = -1;
   uint32_t run_count = 0;
 
