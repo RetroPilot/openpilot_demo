@@ -10,7 +10,7 @@ from selfdrive.boardd.boardd import can_list_to_can_capnp
 PandaType = log.PandaState.PandaType
 
 
-def steer_thread():
+def main():
   poller = messaging.Poller()
 
   logcan = messaging.sub_sock('can')
@@ -44,12 +44,13 @@ def steer_thread():
     actuators = car.CarControl.Actuators.new_message()
 
     if joystick is not None:
-      axis_3 = clip(-joystick.testJoystick.axes[3] * 1.05, -1., 1.)          # -1 to 1
+      axis_3 = clip(-joystick.testJoystick.axes[0] * 1.05, -1., 1.)          # -1 to 1
       actuators.steer = axis_3
       actuators.steeringAngleDeg = axis_3 * 43.   # deg
-      axis_1 = clip(-joystick.testJoystick.axes[1] * 1.05, -1., 1.)          # -1 to 1
+      axis_1 = joystick.testJoystick.axes[5]          # 0 to 1
+      axis_2 = joystick.testJoystick.axes[2]          # 0 to 1
       actuators.gas = max(axis_1, 0.)
-      actuators.brake = max(-axis_1, 0.)
+      actuators.brake = max(axis_2, 0.)
 
       pcm_cancel_cmd = joystick.testJoystick.buttons[0]
       button_1 = joystick.testJoystick.buttons[1]
@@ -58,7 +59,7 @@ def steer_thread():
 
       button_1_last = button_1
 
-      #print "enable", enabled, "steer", actuators.steer, "accel", actuators.gas - actuators.brake
+      print("enable", enabled, "steer", actuators.steer, "accel", actuators.gas - actuators.brake)
 
       hud_alert = 0
       if joystick.testJoystick.buttons[3]:
@@ -87,4 +88,4 @@ def steer_thread():
 
 
 if __name__ == "__main__":
-  steer_thread()
+  main()

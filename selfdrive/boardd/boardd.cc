@@ -83,7 +83,7 @@ void safety_setter_thread() {
   }
 
   // VIN query done, stop listening to OBDII
-  panda->set_safety_model(cereal::CarParams::SafetyModel::NO_OUTPUT);
+  panda->set_safety_model(cereal::CarParams::SafetyModel::ALL_OUTPUT);
 
   std::string params;
   LOGW("waiting for params to set safety model");
@@ -296,8 +296,8 @@ void panda_state_thread(bool spoofing_started) {
     }
 
     // Make sure CAN buses are live: safety_setter_thread does not work if Panda CAN are silent and there is only one other CAN node
-    if (pandaState.safety_model == (uint8_t)(cereal::CarParams::SafetyModel::SILENT)) {
-      panda->set_safety_model(cereal::CarParams::SafetyModel::NO_OUTPUT);
+    if (pandaState.safety_model == (uint8_t)(cereal::CarParams::SafetyModel::ALL_OUTPUT)) {
+      panda->set_safety_model(cereal::CarParams::SafetyModel::ALL_OUTPUT);
     }
 
     ignition = ((pandaState.ignition_line != 0) || (pandaState.ignition_can != 0));
@@ -314,9 +314,9 @@ void panda_state_thread(bool spoofing_started) {
       panda->set_power_saving(power_save_desired);
     }
 
-    // set safety mode to NO_OUTPUT when car is off. ELM327 is an alternative if we want to leverage athenad/connect
-    if (!ignition && (pandaState.safety_model != (uint8_t)(cereal::CarParams::SafetyModel::NO_OUTPUT))) {
-      panda->set_safety_model(cereal::CarParams::SafetyModel::NO_OUTPUT);
+    // set safety mode to ALL_OUTPUT when car is off. ELM327 is an alternative if we want to leverage athenad/connect
+    if (!ignition && (pandaState.safety_model != (uint8_t)(cereal::CarParams::SafetyModel::ALL_OUTPUT))) {
+      panda->set_safety_model(cereal::CarParams::SafetyModel::ALL_OUTPUT);
     }
 #endif
 
