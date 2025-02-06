@@ -8,6 +8,7 @@
 #include <string.h>
 #include <mutex>
 #include <string>
+#include <stdarg.h>
 
 #include <zmq.h>
 #include "json11.hpp"

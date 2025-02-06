@@ -484,10 +484,11 @@ void OmxEncoder::encoder_open(const char* path) {
     assert(this->out_stream);
 
     // set codec correctly
-    av_register_all();
+    // av_register_all();
 
-    AVCodec *codec = NULL;
-    codec = avcodec_find_encoder(AV_CODEC_ID_H264);
+    // AVCodec *codec = NULL;
+    // codec = avcodec_find_encoder(AV_CODEC_ID_H264);
+    const AVCodec *codec = avcodec_find_encoder(AV_CODEC_ID_H264); //AV_CODEC_ID_FFVHUFF
     assert(codec);
 
     this->codec_ctx = avcodec_alloc_context3(codec);

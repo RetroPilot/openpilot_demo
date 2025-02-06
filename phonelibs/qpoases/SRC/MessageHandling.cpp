@@ -484,13 +484,13 @@ returnValue MessageHandling::throwMessage(
 {
 	/* DUMMY CODE FOR PRETENDING USE OF ARGUMENTS
 	 * FOR SUPPRESSING COMPILER WARNINGS! */
-	int i = 0;
-	if ( additionaltext == 0 ) i++;
-	if ( functionname == 0 ) i++;
-	if ( filename == 0 ) i++;
-	if ( linenumber == 0 ) i++;
-	if ( localVisibilityStatus == VS_VISIBLE ) i++;
-	if ( RETstring == 0 ) i++;
+	// int i = 0;
+	// if ( additionaltext == 0 ) i++;
+	// if ( functionname == 0 ) i++;
+	// if ( filename == 0 ) i++;
+	// if ( linenumber == 0 ) i++;
+	// if ( localVisibilityStatus == VS_VISIBLE ) i++;
+	// if ( RETstring == 0 ) i++;
 	/* END OF DUMMY CODE */
 
 	return RETnumber;

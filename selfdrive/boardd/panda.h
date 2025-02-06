@@ -6,6 +6,7 @@
 #include <mutex>
 #include <optional>
 #include <vector>
+#include <string>
 
 #include <libusb-1.0/libusb.h>
 

@@ -45,7 +45,7 @@ FrameReader::FrameReader(const char *fn) {
   assert(ret >= 0);
 
   avformat_network_init();
-  av_register_all();
+  // av_register_all();
 
   snprintf(url, sizeof(url)-1,"%s",fn);
   t = new std::thread([&]() { this->loaderThread(); });
