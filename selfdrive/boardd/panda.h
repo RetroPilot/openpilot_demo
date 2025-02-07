@@ -39,6 +39,12 @@ struct __attribute__((packed)) health_t {
   uint8_t power_save_enabled;
 };
 
+struct can_frame {
+  long address;
+  std::string dat;
+  long busTime;
+  long src;
+};
 
 class Panda {
  private:

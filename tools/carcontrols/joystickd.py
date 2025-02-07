@@ -9,22 +9,22 @@
 import pygame  # pylint: disable=import-error
 import cereal.messaging as messaging
 
-from tkinter import Tk, Canvas, Frame, BOTH
-from PIL import Image, ImageTk
+# from tkinter import Tk, Canvas, Frame, BOTH
+# from PIL import Image, ImageTk
 
 def main():
 
   # Tk stuff
-  root = Tk()
-  root.title("Joystick")
-  root.geometry("1920x1024+300+300")
-  canvas = Canvas()
+  # root = Tk()
+  # root.title("Joystick")
+  # root.geometry("1920x1024+300+300")
+  # canvas = Canvas()
 
-  pil_img = Image.open("wheel.png").resize(size=(300, 300))
+  # pil_img = Image.open("wheel.png").resize(size=(300, 300))
 
-  canvas.create_line(15, 25, 200, 25)
-  canvas.create_line(300, 35, 300, 200, dash=(4, 2))
-  canvas.create_line(55, 85, 155, 85, 105, 180, 55, 85)
+  # canvas.create_line(15, 25, 200, 25)
+  # canvas.create_line(300, 35, 300, 200, dash=(4, 2))
+  # canvas.create_line(55, 85, 155, 85, 105, 180, 55, 85)
 
   # set up publishers and subscribers
   joystick_sock = messaging.pub_sock('testJoystick')
@@ -84,22 +84,22 @@ def main():
     # Limit to 100 frames per second
     clock.tick(100)
 
-    # update the tk window
-    canvas.delete("all")
-    # image
-    pil_img_rot = pil_img.rotate(360*-axes[0])
-    tk_img = ImageTk.PhotoImage(pil_img_rot)
-    canvas.create_image(300, 300, image=tk_img)
-    # bar graphs
-    canvas.create_line(300, 600, 300+(axes[0]*100), 600, width=20) #steer
-    canvas.create_line(200, 900, 200, 900 - (axes[2]*200), width=20) # brake
-    canvas.create_line(400, 900, 400, 900 - (axes[5]*200), width=20) # gas
-    # text
-    canvas.create_text(300, 620, text=f"Steering: {axes[0]}")
-    canvas.create_text(200, 920, text=f"Brake: {axes[2]}")
-    canvas.create_text(400, 920, text=f"Gas: {axes[5]}")
-    canvas.pack(fill=BOTH, expand=1)
-    root.update()
+    # # update the tk window
+    # canvas.delete("all")
+    # # image
+    # pil_img_rot = pil_img.rotate(360*-axes[0])
+    # tk_img = ImageTk.PhotoImage(pil_img_rot)
+    # canvas.create_image(300, 300, image=tk_img)
+    # # bar graphs
+    # canvas.create_line(300, 600, 300+(axes[0]*100), 600, width=20) #steer
+    # canvas.create_line(200, 900, 200, 900 - (axes[2]*200), width=20) # brake
+    # canvas.create_line(400, 900, 400, 900 - (axes[5]*200), width=20) # gas
+    # # text
+    # canvas.create_text(300, 620, text=f"Steering: {axes[0]}")
+    # canvas.create_text(200, 920, text=f"Brake: {axes[2]}")
+    # canvas.create_text(400, 920, text=f"Gas: {axes[5]}")
+    # canvas.pack(fill=BOTH, expand=1)
+    # root.update()
 
     sm.update()
     for which, updated in sm.updated.items():

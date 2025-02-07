@@ -58,7 +58,7 @@ RawLogger::RawLogger(const char* filename, int width, int height, int fps,
 
 RawLogger::~RawLogger() {
   av_frame_free(&frame);
-  avcodec_close(codec_ctx);
+  avcodec_close(codec_ctx);  // Corrected to codec_ctx instead of stream->codecpar
   av_free(codec_ctx);
 }
 
@@ -104,8 +104,7 @@ void RawLogger::encoder_close() {
   int err = av_write_trailer(format_ctx);
   assert(err == 0);
 
-  avcodec_close(stream->codecpar);
-
+  avcodec_close(codec_ctx);  // Corrected here as well
   err = avio_closep(&format_ctx->pb);
   assert(err == 0);
 
@@ -129,8 +128,7 @@ int RawLogger::encode_frame(const uint8_t *y_ptr, const uint8_t *u_ptr, const ui
   frame->pts = ts;
 
   int ret = counter;
-
-  int got_output = 0;
+  // int got_output = 0;
   // int err = avcodec_encode_video2(codec_ctx, &pkt, frame, &got_output);
   // if (err) {
   //   LOGE("encoding error\n");

@@ -4,7 +4,7 @@ casadi
 cffi
 crcmod
 cryptography
-Cython
+Cython==0.29.36
 flake8
 Flask
 future-fstrings
@@ -16,9 +16,9 @@ libusb1
 nose
 numpy
 protobuf==3.20.1
-#pybind11
-#onnx
-#onnxruntime-gpu
+pybind11
+onnx
+onnxruntime-gpu
 pillow
 psutil
 pycapnp
@@ -80,7 +80,7 @@ breathe
 subprocess32
 tenacity
 mpld3
-# carla
+carla
 ft4222
 pandas
 tabulate

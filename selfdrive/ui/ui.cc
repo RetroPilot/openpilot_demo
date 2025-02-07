@@ -14,6 +14,8 @@
 #include "selfdrive/ui/paint.h"
 #include "selfdrive/ui/qt/qt_window.h"
 
+#include <optional>
+
 #define BACKLIGHT_DT 0.25
 #define BACKLIGHT_TS 2.00
 #define BACKLIGHT_OFFROAD 50
@@ -314,8 +316,8 @@ void QUIState::update() {
 }
 
 Device::Device(QObject *parent) : brightness_filter(BACKLIGHT_OFFROAD, BACKLIGHT_TS, BACKLIGHT_DT), QObject(parent) {
-  brightness_b = Params(true).get<float>("BRIGHTNESS_B").value_or(10.0);
-  brightness_m = Params(true).get<float>("BRIGHTNESS_M").value_or(0.1);
+  // brightness_b = Params(true).get<float>("BRIGHTNESS_B").value_or(10.0f);
+  // brightness_m = Params(true).get<float>("BRIGHTNESS_M").value_or(0.1f);
 }
 
 void Device::update(const UIState &s) {

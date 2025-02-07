@@ -52,9 +52,10 @@ void Sidebar::update(const UIState &s) {
   if (s.sm->frame % (6*UI_FREQ) == 0) {
     connect_str = "OFFLINE";
     connect_status = warning_color;
-    auto last_ping = params.get<float>("LastAthenaPingTime");
+    auto last_ping = 0;//params.get("LastAthenaPingTime");
     if (last_ping) {
-      bool online = nanos_since_boot() - *last_ping < 70e9;
+      // bool online = nanos_since_boot() - *last_ping < 70e9;
+      bool online = true;
       connect_str = online ? "ONLINE" : "ERROR";
       connect_status = online ? good_color : danger_color;
     }

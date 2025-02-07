@@ -11,6 +11,9 @@
 #include <QString>
 #include <QTimer>
 #include <QWidget>
+#include <openssl/evp.h>
+#include <openssl/pem.h>
+#include <openssl/rsa.h>
 
 #include "selfdrive/common/params.h"
 #include "selfdrive/common/util.h"
@@ -29,18 +32,30 @@ QByteArray CommaApi::rsa_sign(const QByteArray &data) {
   auto key = file.readAll();
   file.close();
   file.deleteLater();
+  
+  // Read the private key
   BIO* mem = BIO_new_mem_buf(key.data(), key.size());
   assert(mem);
-  RSA* rsa_private = PEM_read_bio_RSAPrivateKey(mem, NULL, NULL, NULL);
-  assert(rsa_private);
-  auto sig = QByteArray();
-  sig.resize(RSA_size(rsa_private));
+  EVP_PKEY* pkey = PEM_read_bio_PrivateKey(mem, NULL, NULL, NULL);
+  assert(pkey);
+  
+  // Prepare signature
+  QByteArray sig;
+  sig.resize(EVP_PKEY_size(pkey));  // Use EVP_PKEY_size for key size
+  
+  // Sign the data
+  EVP_MD_CTX* ctx = EVP_MD_CTX_new();
+  EVP_SignInit(ctx, EVP_sha256());
+  EVP_SignUpdate(ctx, data.data(), data.size());
   unsigned int sig_len;
-  int ret = RSA_sign(NID_sha256, (unsigned char*)data.data(), data.size(), (unsigned char*)sig.data(), &sig_len, rsa_private);
+  int ret = EVP_SignFinal(ctx, (unsigned char*)sig.data(), &sig_len, pkey);
   assert(ret == 1);
   assert(sig_len == sig.size());
+  
+  EVP_MD_CTX_free(ctx);
+  EVP_PKEY_free(pkey);  // Free the EVP_PKEY object (no need to call RSA_free anymore)
   BIO_free(mem);
-  RSA_free(rsa_private);
+  
   return sig;
 }
 
@@ -70,7 +85,6 @@ QString CommaApi::create_jwt(const QVector<QPair<QString, QJsonValue>> &payloads
   jwt += '.' + sig.toBase64(b64_opts);
   return jwt;
 }
-
 
 HttpRequest::HttpRequest(QObject *parent, const QString &requestURL, const QString &cache_key, bool create_jwt_) : cache_key(cache_key), create_jwt(create_jwt_), QObject(parent) {
   networkAccessManager = new QNetworkAccessManager(this);

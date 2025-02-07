@@ -401,7 +401,7 @@ SConscript(['common/kalman/SConscript'])
 SConscript(['common/transformations/SConscript'])
 
 SConscript(['selfdrive/camerad/SConscript'])
-# SConscript(['selfdrive/modeld/SConscript'])
+SConscript(['selfdrive/modeld/SConscript'])
 
 SConscript(['selfdrive/controls/lib/cluster/SConscript'])
 SConscript(['selfdrive/controls/lib/lateral_mpc/SConscript'])
@@ -412,11 +412,11 @@ SConscript(['selfdrive/boardd/SConscript'])
 SConscript(['selfdrive/proclogd/SConscript'])
 SConscript(['selfdrive/clocksd/SConscript'])
 
-# SConscript(['selfdrive/loggerd/SConscript'])
+SConscript(['selfdrive/loggerd/SConscript'])
 
 SConscript(['selfdrive/locationd/SConscript'])
 SConscript(['selfdrive/sensord/SConscript'])
-# SConscript(['selfdrive/ui/SConscript'])
+SConscript(['selfdrive/ui/SConscript'])
 
 if arch != "Darwin":
   SConscript(['selfdrive/logcatd/SConscript'])

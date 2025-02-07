@@ -42,7 +42,7 @@ namespace zdl { namespace DlSystem
  * A bidirectional iterator (with limited random access 
  * capabilities) for the zdl::DlSystem::ITensor class.
  *  
- * This is a standard bidrectional iterator and is compatible
+ * This is a standard bidirectional iterator and is compatible
  * with standard algorithm functions that operate on bidirectional 
  * access iterators (e.g., std::copy, std::fill, etc.). It uses a
  * template parameter to create const and non-const iterators 
@@ -59,9 +59,14 @@ namespace zdl { namespace DlSystem
  * performance of the iterator (on the order of 20x slower). 
  */ 
 template<bool IS_CONST=true>
-class ZDL_EXPORT ITensorItr : public std::iterator<std::bidirectional_iterator_tag, float>
+class ZDL_EXPORT ITensorItr
 {
 public:
+   // Define the necessary iterator types manually
+   using iterator_category = std::bidirectional_iterator_tag;
+   using value_type = float;
+   using pointer = float*;
+   using reference = float&;
 
    typedef typename std::conditional<IS_CONST, const float&, float&>::type VALUE_REF;
 

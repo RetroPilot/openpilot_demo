@@ -293,18 +293,33 @@ void MapWindow::mouseMoveEvent(QMouseEvent *ev){
   ev->accept();
 }
 
+// void MapWindow::wheelEvent(QWheelEvent *ev) {
+//   if (ev->orientation() == Qt::Horizontal) {
+//       return;
+//   }
+
+//   float factor = ev->delta() / 1200.;
+//   if (ev->delta() < 0) {
+//       factor = factor > -1 ? factor : 1 / factor;
+//   }
+
+//   m_map->scaleBy(1 + factor, ev->pos() / MAP_SCALE);
+//   zoom_counter = PAN_TIMEOUT;
+//   ev->accept();
+// }
+
 void MapWindow::wheelEvent(QWheelEvent *ev) {
-  if (ev->orientation() == Qt::Horizontal) {
-      return;
-  }
-
-  float factor = ev->delta() / 1200.;
-  if (ev->delta() < 0) {
-      factor = factor > -1 ? factor : 1 / factor;
-  }
-
-  m_map->scaleBy(1 + factor, ev->pos() / MAP_SCALE);
-  zoom_counter = PAN_TIMEOUT;
+    QPoint angleDelta = ev->angleDelta();
+    if (angleDelta.x() != 0) {
+      // TODO: map movement sideways
+    } else {
+      float delta = angleDelta.y();
+      float factor = delta / 1200.0;
+      if (delta < 0) {
+        factor = factor > -0.5 ? factor : -0.5;
+      }
+      m_map->scaleBy(1 + factor, ev->position().toPoint() / MAP_SCALE);
+    }
   ev->accept();
 }
 
@@ -377,7 +392,7 @@ MapInstructions::MapInstructions(QWidget * parent) : QWidget(parent){
   )");
 
   QPalette pal = palette();
-  pal.setColor(QPalette::Background, QColor(0, 0, 0, 150));
+  pal.setColor(QPalette::Window, QColor(0, 0, 0, 150));
   setAutoFillBackground(true);
   setPalette(pal);
 }
@@ -440,7 +455,7 @@ void MapInstructions::updateInstructions(QMap<QString, QVariant> banner){
   }
 
   clearLayout(lane_layout);
-  bool has_lanes = false;
+  // bool has_lanes = false;
 
   if (banner.contains("sub")){
     auto s = banner["sub"].toMap();
@@ -448,7 +463,7 @@ void MapInstructions::updateInstructions(QMap<QString, QVariant> banner){
     for (auto &c : components) {
       auto cc = c.toMap();
       if (cc["type"].toString() == "lane"){
-        has_lanes = true;
+        // has_lanes = true;
 
         bool left = false;
         bool straight = false;
