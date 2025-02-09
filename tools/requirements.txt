@@ -21,7 +21,7 @@ onnx
 onnxruntime-gpu
 pillow
 psutil
-pycapnp
+pycapnp==1.0.0
 pycryptodome
 PyJWT
 pylint

@@ -77,12 +77,7 @@ function install_ubuntu_latest_requirements() {
     qtchooser \
     qt5-qmake \
     qtbase5-dev-tools \
-    python3-pip \
-    python3-dev \
-    python-is-python3 \
-    pipenv \
-    protobuf-compiler \
-    libopenblas-dev\
+    python3-dev
 }
 
 # Install Ubuntu 20.04 packages
@@ -99,9 +94,6 @@ function install_ubuntu_lts_requirements() {
 if [ -f "/etc/os-release" ]; then
   source /etc/os-release
   case "$ID $VERSION_ID" in
-    "ubuntu 24.04")
-      install_ubuntu_latest_requirements
-      ;;
     "ubuntu 22.04")
       install_ubuntu_latest_requirements
       ;;
@@ -124,16 +116,13 @@ fi
 
 
 # install python dependencies
-# $ROOT/update_requirements.sh
-pipx install -r $ROOT/requirements.txt
+$ROOT/update_requirements.sh
 
 source ~/.bashrc
-if [ -z "$OPENPILOT_SYS" ]; then
-  # printf "\nsource %s/tools/openpilot_env.sh" "$ROOT" >> ~/.bashrc
-  printf "\nPYTHONPATH=%s/openpilot" "$ROOT" >> ~/.bashrc
-  printf "export OPENPILOT_SYS=1" "$ROOT" >> ~/.bashrc
+if [ -z "$OPENPILOT_ENV" ]; then
+  printf "\nsource %s/tools/openpilot_env.sh" "$ROOT" >> ~/.bashrc
   source ~/.bashrc
-  echo "added openpilot to bashrc"
+  echo "added openpilot_env to bashrc"
 fi
 
 echo
