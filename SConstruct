@@ -313,7 +313,7 @@ else:
   elif arch != "Darwin":
     qt_libs += ["GL"]
 
-if arch == "larh64":
+if arch in ("larch64", "aarch64"):
   qt_env.Tool('qt')
 else:
   qt_env.Tool('qt3')
