@@ -313,7 +313,11 @@ else:
   elif arch != "Darwin":
     qt_libs += ["GL"]
 
-qt_env.Tool('qt3')
+if arch == "larh64":
+  qt_env.Tool('qt')
+else:
+  qt_env.Tool('qt3')
+
 qt_env['CPPPATH'] += qt_dirs + ["#selfdrive/ui/qt/"]
 qt_flags = [
   "-D_REENTRANT",
