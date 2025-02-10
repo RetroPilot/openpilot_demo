@@ -318,6 +318,8 @@ void QUIState::update() {
 Device::Device(QObject *parent) : brightness_filter(BACKLIGHT_OFFROAD, BACKLIGHT_TS, BACKLIGHT_DT), QObject(parent) {
   // brightness_b = Params(true).get<float>("BRIGHTNESS_B").value_or(10.0f);
   // brightness_m = Params(true).get<float>("BRIGHTNESS_M").value_or(0.1f);
+  brightness_b = 10.0f;
+  brightness_m = 0.1f;
 }
 
 void Device::update(const UIState &s) {
