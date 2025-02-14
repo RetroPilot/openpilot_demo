@@ -32,5 +32,5 @@ STEER_THRESHOLD = 100
 
 DBC = {
     CAR.SMART_ROADSTER_COUPE: dbc_dict('ocelot_can', 'ford_focus_adas', 'ocelot_smart_roadster_pt'),
-    CAR.ALBATROSS: dbc_dict('ocelot_controls', 'ford_focus_adas', 'ocelot_smart_roadster_pt'),
+    CAR.ALBATROSS: dbc_dict('ocelot_controls', 'toyota_tss2_adas', 'ocelot_smart_roadster_pt'),
 }
