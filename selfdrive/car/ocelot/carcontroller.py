@@ -1,7 +1,7 @@
 from cereal import car
 from common.numpy_fast import clip
 from selfdrive.car import apply_toyota_steer_torque_limits, make_can_msg
-from selfdrive.car.ocelot.ocelotcan import create_steer_command, create_gas_command, create_brake_cmd
+from selfdrive.car.ocelot.ocelotcan import create_steer_command, create_gas_command, create_brake_cmd, create_gas_actuator_command
 from selfdrive.car.ocelot.values import CAR, SteerLimitParams
 from opendbc.can.packer import CANPacker
 
@@ -101,7 +101,7 @@ class CarController():
     if (frame % 2 == 0):
       # send exactly zero if apply_gas is zero. Interceptor will send the max between read value and apply_gas.
       # This prevents unexpected pedal range rescaling
-      can_sends.append(create_gas_command(self.packer, apply_gas, frame//2))
+      can_sends.append(create_gas_actuator_command(self.packer, apply_gas, frame//2))
     
     can_sends.append(create_brake_cmd(self.packer, enabled, actuators.brake, frame//2))
 

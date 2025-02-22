@@ -38,6 +38,20 @@ def create_gas_command(packer, gas_amount, idx):
 
   return packer.make_can_msg("PEDAL_GAS_COMMAND", 0, values)
 
+def create_gas_actuator_command(packer, gas_amount, idx):
+  # Common gas pedal msg generator
+  enable = gas_amount > 0.001
+
+  values = {
+    "ENABLE": enable,
+    "COUNTER": idx & 0xF,
+  }
+
+  if enable:
+    values["THROTTLE_REQ"] = (gas_amount * 1500)
+
+  return packer.make_can_msg("ACTUATOR_GAS_COMMAND", 0, values)
+
 def create_brake_cmd(packer, enabled, brake, raw_cnt):
   values = {
     "BRAKE_POSITION_COMMAND" : brake * 5,
