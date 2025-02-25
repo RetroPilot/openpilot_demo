@@ -21,19 +21,20 @@ class CarState(CarStateBase):
     ret = car.CarState.new_message()
 
     #Car specific information
-    if self.CP.carFingerprint == CAR.SMART_ROADSTER_COUPE:
-        ret.doorOpen = False #any([cp_body.vl["BODYCONTROL"]['RIGHT_DOOR'], cp_body.vl["BODYCONTROL"]['LEFT_DOOR']]) != 0
-        ret.seatbeltUnlatched = False
-        ret.leftBlinker = False #cp_body.vl["BODYCONTROL"]['LEFT_SIGNAL']
-        ret.rightBlinker = False #cp_body.vl["BODYCONTROL"]['RIGHT_SIGNAL']
-        ret.espDisabled = False #cp_body.vl["ABS"]['ESP_STATUS']
-        ret.wheelSpeeds.fl = 0 #cp_body.vl["SMARTROADSTERWHEELSPEEDS"]['WHEELSPEED_FL'] * CV.MPH_TO_MS
-        ret.wheelSpeeds.fr = 0 #cp_body.vl["SMARTROADSTERWHEELSPEEDS"]['WHEELSPEED_FR'] * CV.MPH_TO_MS
-        ret.wheelSpeeds.rl = 0 #cp_body.vl["SMARTROADSTERWHEELSPEEDS"]['WHEELSPEED_RL'] * CV.MPH_TO_MS
-        ret.wheelSpeeds.rr = 0 #cp_body.vl["SMARTROADSTERWHEELSPEEDS"]['WHEELSPEED_RR'] * CV.MPH_TO_MS
-        ret.brakeLights = False #cp_body.vl["ABS"]['BRAKEPEDAL']
-        can_gear = 0 #int(cp_body.vl["GEARBOX"]['GEARPOSITION'])
-        ret.gearShifter = self.parse_gear_shifter(self.shifter_values.get(can_gear, None))
+    # commmenting out before seeing what breaks
+    # if self.CP.carFingerprint == CAR.SMART_ROADSTER_COUPE:
+    #     ret.doorOpen = False #any([cp_body.vl["BODYCONTROL"]['RIGHT_DOOR'], cp_body.vl["BODYCONTROL"]['LEFT_DOOR']]) != 0
+    #     ret.seatbeltUnlatched = False
+    #     ret.leftBlinker = False #cp_body.vl["BODYCONTROL"]['LEFT_SIGNAL']
+    #     ret.rightBlinker = False #cp_body.vl["BODYCONTROL"]['RIGHT_SIGNAL']
+    #     ret.espDisabled = False #cp_body.vl["ABS"]['ESP_STATUS']
+    #     ret.wheelSpeeds.fl = 0 #cp_body.vl["SMARTROADSTERWHEELSPEEDS"]['WHEELSPEED_FL'] * CV.MPH_TO_MS
+    #     ret.wheelSpeeds.fr = 0 #cp_body.vl["SMARTROADSTERWHEELSPEEDS"]['WHEELSPEED_FR'] * CV.MPH_TO_MS
+    #     ret.wheelSpeeds.rl = 0 #cp_body.vl["SMARTROADSTERWHEELSPEEDS"]['WHEELSPEED_RL'] * CV.MPH_TO_MS
+    #     ret.wheelSpeeds.rr = 0 #cp_body.vl["SMARTROADSTERWHEELSPEEDS"]['WHEELSPEED_RR'] * CV.MPH_TO_MS
+    #     ret.brakeLights = False #cp_body.vl["ABS"]['BRAKEPEDAL']
+    #     can_gear = 0 #int(cp_body.vl["GEARBOX"]['GEARPOSITION'])
+    #     ret.gearShifter = self.parse_gear_shifter(self.shifter_values.get(can_gear, None))
 
     #Ibooster data
     ret.brakePressed = False #cp.vl["BRAKE_STATUS"]['IBOOSTER_BRAKE_APPLIED']
@@ -84,8 +85,6 @@ class CarState(CarStateBase):
 
 
     return ret
-
-
 
   @staticmethod
   def get_can_parser(CP):
