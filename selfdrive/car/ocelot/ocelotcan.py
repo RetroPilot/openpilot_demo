@@ -10,7 +10,7 @@
 
 MAX_TORQUE = 350. # cannot be over 1000
 
-def create_steer_command(packer, torque, enable, idx):
+def create_steer_interceptor_command(packer, torque, enable, idx):
 
   values = {
     "ENABLE": enable,
@@ -23,7 +23,7 @@ def create_steer_command(packer, torque, enable, idx):
 
   return packer.make_can_msg("INTERCEPTOR_STEERING_COMMAND", 0, values)
 
-def create_gas_command(packer, gas_amount, idx):
+def create_gas_interceptor_command(packer, gas_amount, idx):
   # Common gas pedal msg generator
   enable = gas_amount > 0.001
 
@@ -33,6 +33,7 @@ def create_gas_command(packer, gas_amount, idx):
   }
 
   if enable:
+    # TODO: parameterize these values - they vary based on the car
     values["GAS_COMMAND"] = (gas_amount * 2400) + 850.
     values["GAS_COMMAND2"] = (gas_amount * 2000) + 480.
 
@@ -52,7 +53,7 @@ def create_gas_actuator_command(packer, gas_amount, idx):
 
   return packer.make_can_msg("ACTUATOR_GAS_COMMAND", 0, values)
 
-def create_brake_cmd(packer, enabled, brake, raw_cnt):
+def create_iBooster_cmd(packer, enabled, brake, raw_cnt):
   values = {
     "BRAKE_POSITION_COMMAND" : brake * 7,
     "BRAKE_RELATIVE_COMMAND": 0, #brake * 252,

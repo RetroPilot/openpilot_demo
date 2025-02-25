@@ -22,11 +22,11 @@ class CarInterface(CarInterfaceBase):
     ret = CarInterfaceBase.get_std_params(candidate, fingerprint)
 
     ret.carName = "ocelot"
+    #TODO: ocelot panda safety. allOutput is kinda cursed
     ret.safetyModel = car.CarParams.SafetyModel.allOutput
 
     ret.steerActuatorDelay = 0.12  # Default delay, Prius has larger delay
     ret.steerLimitTimer = 0.4
-
 
     ret.lateralTuning.init('pid')
     ret.lateralTuning.pid.kiBP, ret.lateralTuning.pid.kpBP = [[0.], [0.]]
@@ -39,7 +39,6 @@ class CarInterface(CarInterfaceBase):
     ret.lateralTuning.pid.kpV, ret.lateralTuning.pid.kiV = [[0.3], [0.05]]
     ret.lateralTuning.pid.kf = 0.00007   # full torque for 20 deg at 80mph means 0.00007818594
 
-
     ret.steerRateCost = 1.
     ret.centerToFront = ret.wheelbase * 0.44
 
@@ -51,11 +50,25 @@ class CarInterface(CarInterfaceBase):
     # mass and CG position, so all cars will have approximately similar dyn behaviors
     ret.tireStiffnessFront, ret.tireStiffnessRear = scale_tire_stiffness(ret.mass, ret.wheelbase, ret.centerToFront,
                                                                          tire_stiffness_factor=tire_stiffness_factor)
-
+    
+    # detect hardware
     ret.enableGasInterceptor = 0x201 in fingerprint[0]
+    ret.enableSteerInterceptor = 0x301 in fingerprint[0]
+    ret.enableGasActuator = 0x401 in fingerprint[0]
+    ret.enableiBooster = 0x20F in fingerprint[0]
 
-    ret.openpilotLongitudinalControl = True
-    cloudlog.warning("ECU Gas Interceptor: %r", ret.enableGasInterceptor)
+    # only enable long if the hardware is present
+    # TODO: do something with this information
+    ret.openpilotLongitudinalControl = ret.enableiBooster and (ret.enableGasInterceptor or ret.enableGasActuator)=
+
+    if ret.enableGasInterceptor:
+      cloudlog.warning("ECU Gas Interceptor: %r", ret.enableGasInterceptor)
+    if ret.enableSteerInterceptor:
+      cloudlog.warning("ECU Steer Interceptor: %r", ret.enableSteerInterceptor)
+    if ret.enableGasActuator:
+      cloudlog.warning("ECU Gas Actuator: %r", ret.enableGasActuator)
+    if ret.enableiBooster:
+      cloudlog.warning("ECU iBooster: %r", ret.enableiBooster)
 
     # min speed to enable ACC. if car can do stop and go, then set enabling speed
     # to a negative value, so it won't matter.
@@ -71,7 +84,13 @@ class CarInterface(CarInterfaceBase):
       ret.gasMaxV = [0.2, 0.5, 0.7]
       ret.longitudinalTuning.kpV = [1.2, 0.8, 0.5]
       ret.longitudinalTuning.kiV = [0.18, 0.12]
+    if ret.enableGasActuator:
+      ret.gasMaxBP = [0.]
+      ret.gasMaxV = [0.5]
+      ret.longitudinalTuning.kpV = [3.6, 2.4, 1.5]
+      ret.longitudinalTuning.kiV = [0.54, 0.36]
     else:
+      # generic values for now, but need to handle no gas control
       ret.gasMaxBP = [0.]
       ret.gasMaxV = [0.5]
       ret.longitudinalTuning.kpV = [3.6, 2.4, 1.5]
@@ -93,15 +112,6 @@ class CarInterface(CarInterfaceBase):
     # events
     events = self.create_common_events(ret)
 
-    if ret.vEgo < self.CP.minEnableSpeed and self.CP.openpilotLongitudinalControl:
-      events.add(EventName.belowEngageSpeed)
-      if c.actuators.gas > 0.1:
-        # some margin on the actuator to not false trigger cancellation while stopping
-        events.add(EventName.speedTooLow)
-      if ret.vEgo < 0.001:
-        # while in standstill, send a user alert
-        events.add(EventName.manualRestart)
-
     ret.events = events.to_msg()
 
     self.CS.out = ret.as_reader()
@@ -111,11 +121,9 @@ class CarInterface(CarInterfaceBase):
   # to be called @ 100hz
   def apply(self, c):
 
+    # simple!
     can_sends = self.CC.update(c.enabled, self.CS, self.frame,
-                               c.actuators, c.cruiseControl.cancel,
-                               c.hudControl.visualAlert, c.hudControl.leftLaneVisible,
-                               c.hudControl.rightLaneVisible, c.hudControl.leadVisible,
-                               c.hudControl.leftLaneDepart, c.hudControl.rightLaneDepart)
+                               c.actuators)
 
     self.frame += 1
     return can_sends
