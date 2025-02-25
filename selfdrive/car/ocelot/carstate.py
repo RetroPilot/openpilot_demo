@@ -14,8 +14,9 @@ class CarState(CarStateBase):
     can_define = CANDefine(DBC[CP.carFingerprint]['chassis'])
     self.shifter_values = can_define.dv["GEAR_PACKET"]['GEAR']
     self.setSpeed = 0
+    self.armed = False
     self.enabled = False
-    self.oldEnabled = False
+    self.enabled_last = True
 
   def update(self, cp, cp_body):
     ret = car.CarState.new_message()
@@ -28,16 +29,19 @@ class CarState(CarStateBase):
     #     ret.leftBlinker = False #cp_body.vl["BODYCONTROL"]['LEFT_SIGNAL']
     #     ret.rightBlinker = False #cp_body.vl["BODYCONTROL"]['RIGHT_SIGNAL']
     #     ret.espDisabled = False #cp_body.vl["ABS"]['ESP_STATUS']
-    #     ret.wheelSpeeds.fl = 0 #cp_body.vl["SMARTROADSTERWHEELSPEEDS"]['WHEELSPEED_FL'] * CV.MPH_TO_MS
-    #     ret.wheelSpeeds.fr = 0 #cp_body.vl["SMARTROADSTERWHEELSPEEDS"]['WHEELSPEED_FR'] * CV.MPH_TO_MS
-    #     ret.wheelSpeeds.rl = 0 #cp_body.vl["SMARTROADSTERWHEELSPEEDS"]['WHEELSPEED_RL'] * CV.MPH_TO_MS
-    #     ret.wheelSpeeds.rr = 0 #cp_body.vl["SMARTROADSTERWHEELSPEEDS"]['WHEELSPEED_RR'] * CV.MPH_TO_MS
     #     ret.brakeLights = False #cp_body.vl["ABS"]['BRAKEPEDAL']
     #     can_gear = 0 #int(cp_body.vl["GEARBOX"]['GEARPOSITION'])
     #     ret.gearShifter = self.parse_gear_shifter(self.shifter_values.get(can_gear, None))
 
+    ret.wheelSpeeds.fl = 0 #cp.vl["SMARTROADSTERWHEELSPEEDS"]['WHEELSPEED_FL'] * CV.MPH_TO_MS
+    ret.wheelSpeeds.fr = 0 #cp.vl["SMARTROADSTERWHEELSPEEDS"]['WHEELSPEED_FR'] * CV.MPH_TO_MS
+    ret.wheelSpeeds.rl = 0 #cp.vl["SMARTROADSTERWHEELSPEEDS"]['WHEELSPEED_RL'] * CV.MPH_TO_MS
+    ret.wheelSpeeds.rr = 0 #cp.vl["SMARTROADSTERWHEELSPEEDS"]['WHEELSPEED_RR'] * CV.MPH_TO_MS
+    
     #Ibooster data
-    ret.brakePressed = False #cp.vl["BRAKE_STATUS"]['IBOOSTER_BRAKE_APPLIED']
+    if self.enabled and ret.brakePressed:
+      self.enabled = False
+    ret.brakePressed = cp.vl["OCELOT_BRAKE_STATUS"]['BRAKE_APPLIED']
 
     # if CP.enableGasInterceptor:
     #   ret.gas = (cp_body.vl["GAS_SENSOR"]['PED_GAS'] + cp_body.vl["GAS_SENSOR"]['PED_GAS2']) / 2.
@@ -62,27 +66,30 @@ class CarState(CarStateBase):
     ret.steeringPressed = False #abs(ret.steeringTorque) > STEER_THRESHOLD
     ret.steerWarning = False #cp.vl["STEERING_STATUS"]['STEERING_OK'] != 0
 
-    ret.cruiseState.available = True
     ret.cruiseState.standstill = False
     ret.cruiseState.nonAdaptive = False
 
-    #Logic for OP to manage whether it's enabled or not as controls board only sends button inputs
-    self.oldEnabled = self.enabled
+    if cp.vl["CRUISE"]["ON_OFF"]:
+      self.armmed = not(self.armmed)
+      if self.armed:
+        if self.enabled:
+          self.enabled_last = True
+          if cp.vl["CRUISE"]["RES_UP"]:
+            self.setSpeed += 5*CV.MPH_TO_MS
+          if cp.vl["CRUISE"]["SET_DOWN"] and self.setSpeed >= 10*CV.MPH_TO_MS:
+            self.setSpeed -= 5*CV.MPH_TO_MS
+          if cp.vl["CRUISE"]["CANCEL"]:
+            self.enabled = False
+          self.enabled_last = True
+        elif cp.vl["CRUISE"]["SET_DOWN"]:
+          self.setSpeed = ret.vEgo
+          self.enabled = True
+        elif cp.vl["CRUISE"]["RES_UP"] and self.enabled_last:
+          self.enabled = True
 
-    self.setSpeed = ret.cruiseState.speed
-    #if enabled from off (rising edge) set the speed to the current speed rounded to 5mph
-    if self.enabled and not(self.oldEnabled):
-        ret.cruiseState.speed = (self.myround((ret.vEgo * CV.MS_TO_MPH), 5)) * CV.MPH_TO_MS
-
-    #increase or decrease speed in 5mph increments
-    # if cp.vl["HIM_CTRLS"]['SPEEDUP_BTN']:
-    #     ret.cruiseState.speed = self.setSpeed + 5*CV.MPH_TO_MS
-
-    # if cp.vl["HIM_CTRLS"]['SPEEDDN_BTN']:
-    #     ret.cruiseState.speed = self.setSpeed - 5*CV.MPH_TO_MS
-
+    ret.cruiseState.available = self.armed
     ret.cruiseState.enabled = self.enabled
-
+    ret.cruiseState.speed = self.setSpeed
 
     return ret
 
@@ -91,8 +98,12 @@ class CarState(CarStateBase):
 
     signals = [
       # sig_name, sig_address, default
-      ("BRAKE_OK", "ACTUATOR_BRAKE_STATUS", 0),
-      ("STEERING_OK", "ACTUATOR_STEERING_STATUS", 0),
+      ("ON_OFF", "CRUISE", 0),
+      ("RES_UP", "CRUISE", 0),
+      ("SET_DOWN", "CRUISE", 0),
+      ("CANCEL", "CRUISE", 0),
+      ("BRAKE_APPLIED", "OCELOT_BRAKE_STATUS", 0),
+      
     ]
 
     checks = [
@@ -107,21 +118,7 @@ class CarState(CarStateBase):
     signals = [
     ]
 
-    # use steering message to check if panda is connected to frc
     checks = [
     ]
-
-    # if CP.carFingerprint == CAR.SMART_ROADSTER_COUPE:
-    #     signals.append(("RIGHT_DOOR", "BODYCONTROL",0))
-    #     signals.append(("LEFT_DOOR", "BODYCONTROL",0))
-    #     signals.append(("LEFT_SIGNAL", "BODYCONTROL",0))
-    #     signals.append(("RIGHT_SIGNAL", "BODYCONTROL",0))
-    #     signals.append(("ESP_STATUS", "ABS",0))
-    #     signals.append(("WHEELSPEED_FL", "SMARTROADSTERWHEELSPEEDS",0))
-    #     signals.append(("WHEELSPEED_FR", "SMARTROADSTERWHEELSPEEDS",0))
-    #     signals.append(("WHEELSPEED_RL", "SMARTROADSTERWHEELSPEEDS",0))
-    #     signals.append(("WHEELSPEED_RR", "SMARTROADSTERWHEELSPEEDS",0))
-    #     signals.append(("BRAKEPEDAL", "ABS",0))
-    #     signals.append(("GEARPOSITION","GEARBOX", 0))
 
     return CANParser(DBC[CP.carFingerprint]['chassis'], signals, checks, 1)
