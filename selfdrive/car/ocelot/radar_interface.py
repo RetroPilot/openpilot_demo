@@ -39,7 +39,7 @@ class RadarInterface(RadarInterfaceBase):
 
     # No radar dbc for cars without DSU which are not TSS 2.0
     # TODO: make a adas dbc file for dsu-less models
-    self.no_radar = False
+    self.no_radar = True
 
   def update(self, can_strings):
     if self.no_radar:

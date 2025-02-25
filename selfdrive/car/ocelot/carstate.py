@@ -19,7 +19,7 @@ class CarState(CarStateBase):
     self.enabled = False
     self.enabled_last = True
 
-  def update(self, cp, cp_body):
+  def update(self, cp):
     ret = car.CarState.new_message()
 
     #Car specific information
@@ -71,7 +71,7 @@ class CarState(CarStateBase):
     ret.cruiseState.nonAdaptive = False
 
     if cp.vl["CRUISE"]["ON_OFF"]:
-      self.armmed = not(self.armmed)
+      self.armed = not(self.armed)
       if self.armed:
         if self.enabled:
           self.enabled_last = True

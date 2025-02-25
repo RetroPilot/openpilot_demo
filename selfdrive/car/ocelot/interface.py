@@ -104,9 +104,9 @@ class CarInterface(CarInterfaceBase):
     self.cp.update_strings(can_strings)
     self.cp_body.update_strings(can_strings)
 
-    ret = self.CS.update(self.cp, self.cp_body)
+    ret = self.CS.update(self.cp)
 
-    ret.canValid = self.cp.can_valid and self.cp_body.can_valid
+    ret.canValid = True #self.cp.can_valid
     ret.steeringRateLimited = self.CC.steer_rate_limited if self.CC is not None else False
 
     # events

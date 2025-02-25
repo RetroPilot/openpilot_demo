@@ -18,7 +18,7 @@ class CarController():
     self.packer = CANPacker(dbc_name)
 
   def update(self, enabled, CS, frame, actuators):
-
+    can_sends = []
     # *** compute control surfaces ***
     # if not enabled, everything should be 0
     if not enabled:
@@ -48,7 +48,6 @@ class CarController():
 
     self.last_steer = apply_steer
 
-    can_sends = []
     # send steering command. currently only support interceptor
     if CS.CP.enableSteerInterceptor:
       can_sends.append(create_steer_interceptor_command(self.packer, apply_steer, apply_steer_req, frame))
