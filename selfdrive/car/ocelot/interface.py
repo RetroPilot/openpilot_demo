@@ -59,7 +59,7 @@ class CarInterface(CarInterfaceBase):
 
     # only enable long if the hardware is present
     # TODO: do something with this information
-    ret.openpilotLongitudinalControl = ret.enableiBooster and (ret.enableGasInterceptor or ret.enableGasActuator)=
+    ret.openpilotLongitudinalControl = ret.enableiBooster and (ret.enableGasInterceptor or ret.enableGasActuator)
 
     if ret.enableGasInterceptor:
       cloudlog.warning("ECU Gas Interceptor: %r", ret.enableGasInterceptor)
