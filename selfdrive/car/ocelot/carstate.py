@@ -10,9 +10,10 @@ from selfdrive.car.ocelot.values import CAR, DBC, STEER_THRESHOLD
 class CarState(CarStateBase):
   def __init__(self, CP):
     super().__init__(CP)
-    print(DBC[CP.carFingerprint]['chassis'])
-    can_define = CANDefine(DBC[CP.carFingerprint]['chassis'])
-    self.shifter_values = can_define.dv["GEAR_PACKET"]['GEAR']
+    print(DBC[CP.carFingerprint]['pt'])
+    can_define = CANDefine(DBC[CP.carFingerprint]['pt'])
+    # self.shifter_values = can_define.dv["GEAR_PACKET"]['GEAR']
+    self.shifter_values = "D"
     self.setSpeed = 0
     self.armed = False
     self.enabled = False
@@ -41,7 +42,7 @@ class CarState(CarStateBase):
     #Ibooster data
     if self.enabled and ret.brakePressed:
       self.enabled = False
-    ret.brakePressed = cp.vl["OCELOT_BRAKE_STATUS"]['BRAKE_APPLIED']
+    ret.brakePressed = bool(cp.vl["OCELOT_BRAKE_STATUS"]['BRAKE_APPLIED'])
 
     # if CP.enableGasInterceptor:
     #   ret.gas = (cp_body.vl["GAS_SENSOR"]['PED_GAS'] + cp_body.vl["GAS_SENSOR"]['PED_GAS2']) / 2.
@@ -121,4 +122,4 @@ class CarState(CarStateBase):
     checks = [
     ]
 
-    return CANParser(DBC[CP.carFingerprint]['chassis'], signals, checks, 1)
+    return CANParser(DBC[CP.carFingerprint]['pt'], signals, checks, 1)
