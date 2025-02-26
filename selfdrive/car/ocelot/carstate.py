@@ -34,10 +34,10 @@ class CarState(CarStateBase):
     #     can_gear = 0 #int(cp_body.vl["GEARBOX"]['GEARPOSITION'])
     #     ret.gearShifter = self.parse_gear_shifter(self.shifter_values.get(can_gear, None))
 
-    ret.wheelSpeeds.fl = 0 #cp.vl["SMARTROADSTERWHEELSPEEDS"]['WHEELSPEED_FL'] * CV.MPH_TO_MS
-    ret.wheelSpeeds.fr = 0 #cp.vl["SMARTROADSTERWHEELSPEEDS"]['WHEELSPEED_FR'] * CV.MPH_TO_MS
-    ret.wheelSpeeds.rl = 0 #cp.vl["SMARTROADSTERWHEELSPEEDS"]['WHEELSPEED_RL'] * CV.MPH_TO_MS
-    ret.wheelSpeeds.rr = 0 #cp.vl["SMARTROADSTERWHEELSPEEDS"]['WHEELSPEED_RR'] * CV.MPH_TO_MS
+    ret.wheelSpeeds.fl = (cp.vl["WHEEL_SPEEDS"]['WHEEL_FL'] * 0.01) * 1.23 * CV.KPH_TO_MS
+    ret.wheelSpeeds.fr = (cp.vl["WHEEL_SPEEDS"]['WHEEL_FR'] * 0.01) * 1.23 * CV.KPH_TO_MS
+    ret.wheelSpeeds.rl = (cp.vl["WHEEL_SPEEDS"]['WHEEL_FL'] * 0.01) * 1.23 * CV.KPH_TO_MS
+    ret.wheelSpeeds.rr = (cp.vl["WHEEL_SPEEDS"]['WHEEL_FR'] * 0.01) * 1.23 * CV.KPH_TO_MS
     
     #Ibooster data
     if self.enabled and ret.brakePressed:
@@ -104,7 +104,8 @@ class CarState(CarStateBase):
       ("SET_DOWN", "CRUISE", 0),
       ("CANCEL", "CRUISE", 0),
       ("BRAKE_APPLIED", "OCELOT_BRAKE_STATUS", 0),
-      
+      ("WHEEL_FL", "WHEEL_SPEEDS", 0),
+      ("WHEEL_FR", "WHEEL_SPEEDS", 0),
     ]
 
     checks = [
