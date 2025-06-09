@@ -2,7 +2,7 @@ from cereal import car
 from common.numpy_fast import clip
 from selfdrive.car import apply_toyota_steer_torque_limits, make_can_msg
 from selfdrive.car.ocelot.ocelotcan import create_gas_interceptor_command, create_gas_actuator_command, \
-                                           create_steer_interceptor_command, create_iBooster_cmd
+                                           create_steer_interceptor_command, create_iBooster_cmd, create_relay_command
 from selfdrive.car.ocelot.values import CAR, SteerLimitParams
 from opendbc.can.packer import CANPacker
 
@@ -17,7 +17,7 @@ class CarController():
 
     self.packer = CANPacker(dbc_name)
 
-  def update(self, enabled, CS, frame, actuators):
+  def update(self, enabled, CS, frame, actuators, bodycontrol):
     can_sends = []
     # *** compute control surfaces ***
     # if not enabled, everything should be 0
@@ -32,6 +32,7 @@ class CarController():
     # gas and brake
     apply_gas = clip(actuators.gas, 0., 1.)
     apply_brake = clip(actuators.brake, 0., 1.)
+
     if (frame % 2 == 0):
       # detect whether to use gas interceptor or actuator
       if CS.CP.enableGasInterceptor:
@@ -40,6 +41,7 @@ class CarController():
         can_sends.append(create_gas_actuator_command(self.packer, apply_gas, frame//2))
       if CS.CP.enableiBooster:
         can_sends.append(create_iBooster_cmd(self.packer, enabled, apply_brake, frame//2))
+      can_sends.append(create_relay_command(self.packer, enabled, bodycontrol.relayCoreCMD, frame//2))
     
     # steer torque
     new_steer = int(round(actuators.steer * SteerLimitParams.STEER_MAX))

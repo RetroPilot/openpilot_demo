@@ -123,7 +123,7 @@ class CarInterface(CarInterfaceBase):
 
     # simple!
     can_sends = self.CC.update(c.enabled, self.CS, self.frame,
-                               c.actuators)
+                               c.actuators, c.bodycontrol)
 
     self.frame += 1
     return can_sends

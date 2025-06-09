@@ -58,7 +58,9 @@ def main():
         enabled = not enabled
 
       button_1_last = button_1
+      relays = (joystick.testJoystick.buttons[5] << 1) | joystick.testJoystick.buttons[4]
 
+      # print(relays)
       print("enable", enabled, "steer", actuators.steer, "accel", actuators.gas - actuators.brake)
 
       hud_alert = 0
@@ -73,6 +75,7 @@ def main():
     CC.hudControl.setSpeed = 20
     CC.cruiseControl.cancel = pcm_cancel_cmd
     CC.enabled = enabled
+    CC.bodycontrol.relayCoreCMD = relays
     can_sends = CI.apply(CC)
     sendcan.send(can_list_to_can_capnp(can_sends, msgtype='sendcan'))
 
